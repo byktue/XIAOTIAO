@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>课程平台统一原型（适老化）</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --primary: #667eea;
+      --primary-2: #764ba2;
+      --bg: #f7f8fa;
+      --text: #1d2129;
+      --muted: #6c757d;
+      --card: #ffffff;
+      --border: #e9ecef;
+      --danger: #ff6b6b;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+      --shadow-sm: 0 2px 10px rgba(0,0,0,.06);
+      --shadow-md: 0 6px 20px rgba(0,0,0,.12);
+      --font-size: 18px; /* 可通过右侧面板一键调整 */
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      font-size: var(--font-size);
+    }
+
+    /* 页面布局：左侧原型，右侧设计说明 */
+    .layout {
+      display: grid;
+      grid-template-columns: 430px minmax(320px, 1fr);
+      gap: 20px;
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 0 16px 40px;
+    }
+
+    /* 手机外框 */
+    .phone {
+      max-width: 414px;
+      margin: 0 auto;
+      background: #000;
+      border-radius: 36px;
+      padding: 10px;
+      box-shadow: var(--shadow-md);
+    }
+    .screen {
+      background: var(--card);
+      border-radius: 28px;
+      overflow: hidden;
+      min-height: 780px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* 顶部栏 */
+    .status-bar {
+      height: 44px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      font-weight: 600;
+    }
+
+    /* 顶部搜索/欢迎区 */
+    .hero {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%);
+      color: #fff;
+      padding: 18px;
+    }
+    .hero-title { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+    .hero-sub { opacity: .9; font-size: 15px; margin-bottom: 12px; }
+    .search-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,.2);
+      border-radius: 999px;
+      padding: 10px 14px;
+      backdrop-filter: blur(8px);
+    }
+    .search-bar input {
+      border: none; outline: none; flex: 1; background: transparent; color: #fff; font-size: 16px;
+    }
+    .search-bar input::placeholder { color: rgba(255,255,255,.8); }
+
+    /* 分类导航（横向滚动） */
+    .categories {
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto; -webkit-overflow-scrolling: touch;
+    }
+    .cate-row { display: flex; gap: 10px; padding: 14px 12px; }
+    .cate {
+      flex: 0 0 auto; min-width: 88px; text-align: center;
+      background: #f5f6f8; color: #5c6670; border: 1px solid var(--border);
+      border-radius: 999px; padding: 10px 14px; font-size: 15px; cursor: pointer; user-select: none;
+      transition: .2s all;
+    }
+    .cate:active { transform: scale(.95); }
+    .cate.active { color: #fff; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%); border-color: transparent; }
+
+    /* 区块与卡片 */
+    .section { padding: 16px 14px; }
+    .sec-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .sec-title { font-size: 18px; font-weight: 700; }
+    .more { color: var(--primary); font-size: 14px; text-decoration: none; }
+
+    .featured { display: flex; flex-direction: column; gap: 12px; }
+    .feat-card {
+      display: flex; gap: 12px; background: #fff; border: 1px solid #f0f1f3; border-radius: var(--radius-md); padding: 12px;
+      box-shadow: var(--shadow-sm);
+    }
+    .feat-img { width: 84px; height: 84px; border-radius: 10px; background: linear-gradient(45deg, var(--primary), var(--primary-2)); flex-shrink: 0; }
+    .feat-body { flex: 1; }
+    .feat-title { font-weight: 700; margin-bottom: 6px; font-size: 16px; }
+    .meta { display: flex; gap: 10px; color: #7b8794; font-size: 13px; margin-bottom: 6px; }
+    .price { color: var(--danger); font-weight: 800; }
+
+    .grid { display: grid; gap: 12px; }
+    .card {
+      background: #fff; border: 1px solid #f0f1f3; border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-sm);
+      transition: transform .2s, box-shadow .2s; cursor: pointer;
+    }
+    .card:active { transform: scale(.98); box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+    .thumb { height: 130px; background: linear-gradient(45deg, var(--primary), var(--primary-2)); position: relative; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 42px; }
+    .badge { position: absolute; top: 8px; right: 8px; font-size: 12px; font-weight: 700; padding: 4px 8px; border-radius: 8px; background: rgba(255,255,255,.95); color: var(--primary); }
+    .promo-badge { position: absolute; top: 8px; left: 8px; background: linear-gradient(135deg, var(--primary), var(--primary-2)); color: #fff; padding: 4px 8px; border-radius: 8px; font-size: 12px; font-weight: 700; }
+    .body { padding: 14px; }
+    .title { font-size: 16px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+    .desc { font-size: 14px; color: #5f6b78; margin-bottom: 8px; line-height: 1.5; }
+    .info { display: flex; align-items: center; justify-content: space-between; color: #7b8794; font-size: 13px; }
+    .difficulty { padding: 2px 8px; border-radius: 8px; font-size: 12px; background: #f0f2f5; }
+    .diff-easy { background: #e8f5e8; color: #2e7d32; }
+    .diff-mid { background: #fff3cd; color: #c27a00; }
+
+    /* 课程内推广位 */
+    .promo {
+      background: linear-gradient(135deg, #667eea12 0%, #764ba212 100%);
+      border-left: 4px solid var(--primary);
+      border-radius: 12px;
+      padding: 12px;
+      margin: 6px 2px;
+    }
+    .promo h4 { color: var(--primary); font-size: 16px; margin-bottom: 6px; }
+    .promo p { font-size: 14px; color: #5c6670; }
+
+    /* 底部导航 */
+    .tabbar {
+      position: sticky; bottom: 0; left: 0; right: 0; height: 72px; background: #fff; border-top: 1px solid var(--border);
+      display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; text-align: center;
+    }
+    .tab { color: #9aa4af; font-size: 12px; padding-top: 6px; }
+    .tab.active { color: var(--primary); font-weight: 700; }
+    .tab .ico { font-size: 20px; display: block; }
+
+    /* 动效 */
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: translateY(0) } }
+    .animate { animation: fadeUp .5s ease-out; }
+
+    /* 右侧设计说明面板 */
+    .doc {
+      background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 18px; box-shadow: var(--shadow-sm);
+      position: sticky; top: 20px; height: fit-content; align-self: start;
+    }
+    .doc h2 { font-size: 20px; margin-bottom: 10px; }
+    .doc h3 { font-size: 16px; margin: 14px 0 8px; }
+    .doc ul { margin-left: 16px; color: #4b5563; }
+    .chip {
+      display: inline-block; padding: 4px 8px; border-radius: 999px; background: #f1f5ff; color: var(--primary); font-size: 12px; margin-right: 6px;
+    }
+
+    /* 响应式 */
+    @media (max-width: 960px) {
+      .layout { grid-template-columns: 1fr; }
+      .doc { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <!-- 左：手机原型 -->
+    <div>
+      <div class="phone">
+        <div class="screen">
+          <div class="status-bar">
+            <span>9:41</span>
+            <span>📶 🔋</span>
+          </div>
+
+          <div class="hero">
+            <div class="hero-title">课程学习</div>
+            <div class="hero-sub">精选课程 + 适老化交互，让学习更轻松</div>
+            <div class="search-bar">
+              <span>🔍</span>
+              <input placeholder="搜索课程、讲师或关键词" />
+            </div>
+          </div>
+
+          <div class="categories">
+            <div class="cate-row">
+              <div class="cate active" data-key="all">全部</div>
+              <div class="cate" data-key="digital">基础数码</div>
+              <div class="cate" data-key="health">健康养生</div>
+              <div class="cate" data-key="life">生活技能</div>
+              <div class="cate" data-key="hobby">兴趣娱乐</div>
+              <div class="cate" data-key="smartphone">智能手机</div>
+              <div class="cate" data-key="wechat">微信操作</div>
+            </div>
+          </div>
+
+          <!-- 精选推荐 -->
+          <div class="section">
+            <div class="sec-head">
+              <div class="sec-title">精选推荐</div>
+              <a class="more" href="#">查看更多</a>
+            </div>
+            <div class="featured">
+              <div class="feat-card animate" data-tags="digital,smartphone">
+                <div class="feat-img"></div>
+                <div class="feat-body">
+                  <div class="feat-title">智能手机入门基础教程</div>
+                  <div class="meta"><span>⭐ 4.8</span><span>👨‍🏫 张老师</span><span>⏱️ 2小时</span></div>
+                  <div class="price">免费</div>
+                </div>
+              </div>
+              <div class="feat-card animate" style="animation-delay:.06s" data-tags="digital,wechat">
+                <div class="feat-img" style="background: linear-gradient(45deg,#4ecdc4,#44a08d)"></div>
+                <div class="feat-body">
+                  <div class="feat-title">微信使用技巧大全</div>
+                  <div class="meta"><span>⭐ 4.7</span><span>👩‍🏫 王老师</span><span>⏱️ 1.5小时</span></div>
+                  <div class="price">¥29</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 热门课程 -->
+          <div class="section">
+            <div class="sec-head">
+              <div class="sec-title">热门课程</div>
+              <a class="more" href="#">查看全部</a>
+            </div>
+            <div class="grid">
+              <!-- 卡片1 -->
+              <div class="card animate" data-tags="digital,smartphone">
+                <div class="thumb">
+                  📱
+                  <div class="badge">热门</div>
+                  <div class="promo-badge">推荐产品</div>
+                </div>
+                <div class="body">
+                  <div class="title">智能手机入门基础教程</div>
+                  <div class="desc">学习拨号、短信、相册与常用设置，从零上手。</div>
+                  <div class="info">
+                    <div>⏱️ 2小时</div>
+                    <div class="difficulty diff-easy">简单</div>
+                  </div>
+                </div>
+                <div class="promo">
+                  <h4>📱 推荐产品</h4>
+                  <p>大屏智能手机（大字体/简易桌面/一键求助）</p>
+                </div>
+              </div>
+
+              <!-- 卡片2 -->
+              <div class="card animate" style="animation-delay:.06s" data-tags="digital,wechat">
+                <div class="thumb" style="background: linear-gradient(45deg,#4ecdc4,#44a08d)">💬</div>
+                <div class="body">
+                  <div class="title">微信使用技巧大全</div>
+                  <div class="desc">添加好友、语音消息、视频通话与朋友圈分享。</div>
+                  <div class="info">
+                    <div>⏱️ 1.5小时</div>
+                    <div class="difficulty diff-mid">中等</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 卡片3 -->
+              <div class="card animate" style="animation-delay:.12s" data-tags="health">
+                <div class="thumb" style="background: linear-gradient(45deg,#fd79a8,#fdcb6e)">
+                  ❤️
+                  <div class="badge">健康</div>
+                  <div class="promo-badge">推荐产品</div>
+                </div>
+                <div class="body">
+                  <div class="title">中老年人健康养生指南</div>
+                  <div class="desc">饮食、运动与心理调节，科学守护健康。</div>
+                  <div class="info">
+                    <div>⏱️ 3小时</div>
+                    <div class="difficulty diff-easy">简单</div>
+                  </div>
+                </div>
+                <div class="promo">
+                  <h4>❤️ 推荐产品</h4>
+                  <p>智能血压计（自动记录，家属远程查看）</p>
+                </div>
+              </div>
+
+              <!-- 卡片4 -->
+              <div class="card animate" style="animation-delay:.18s" data-tags="life">
+                <div class="thumb" style="background: linear-gradient(45deg,#6c5ce7,#a29bfe)">🛒</div>
+                <div class="body">
+                  <div class="title">老年人网购安全指南</div>
+                  <div class="desc">识别骗局、安全支付与售后维权，安心网购。</div>
+                  <div class="info">
+                    <div>⏱️ 2小时</div>
+                    <div class="difficulty">中等</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 最近学习 -->
+          <div class="section">
+            <div class="sec-head">
+              <div class="sec-title">最近学习</div>
+              <a class="more" href="#">查看全部</a>
+            </div>
+            <div class="grid">
+              <div class="card animate">
+                <div class="thumb" style="background: linear-gradient(45deg,#00b894,#55efc4)">📸</div>
+                <div class="body">
+                  <div class="title">手机摄影基础</div>
+                  <div class="desc">构图与光线入门，拍出清晰好照片。</div>
+                  <div class="info">
+                    <div>⏱️ 1小时</div>
+                    <div class="difficulty diff-easy">简单</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TabBar -->
+          <div class="tabbar">
+            <div class="tab"><span class="ico">🏠</span>首页</div>
+            <div class="tab active"><span class="ico">📚</span>课程</div>
+            <div class="tab"><span class="ico">🛍️</span>购物</div>
+            <div class="tab"><span class="ico">👥</span>社区</div>
+            <div class="tab"><span class="ico">👤</span>我的</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右：设计思路（与登录原型说明一致的并排呈现） -->
+    <aside class="doc">
+      <h2>课程平台统一原型 · 设计思路</h2>
+      <div>
+        <span class="chip">适老化</span>
+        <span class="chip">多端一致</span>
+        <span class="chip">课程内推广</span>
+      </div>
+
+      <h3>信息架构</h3>
+      <ul>
+        <li>顶部「状态栏 + 英雄区 + 搜索」：快速认知当前页，突出入口。</li>
+        <li>横向「分类导航」：大尺寸标签，减少误触，便于滑动选择。</li>
+        <li>「精选推荐 / 热门课程 / 最近学习」：由近及远，降低选择成本。</li>
+        <li>底部「TabBar」：固定主导航，图标+文字，识别度高。</li>
+      </ul>
+
+      <h3>适老化细节</h3>
+      <ul>
+        <li>基础字号 18px，可在实现中提供一键放大与高对比模式。</li>
+        <li>触控面积 ≥ 44×44；主要操作卡片化，点击区大。</li>
+        <li>文案简洁，强调动词；列表分段，减少一次屏内信息密度。</li>
+        <li>弱网友好：骨架屏/渐进加载（实现阶段接入）。</li>
+      </ul>
+
+      <h3>课程内推广（与后台规则引擎对接）</h3>
+      <ul>
+        <li>推广位类型：卡片角标（promo-badge）+ 卡片内信息块（promo）。</li>
+        <li>展示策略：手工绑定 > 活动规则 > 标签推荐 > 兜底。</li>
+        <li>场景位：课程缩略图角标、卡片底部推荐说明、精选区运营位。</li>
+      </ul>
+
+      <h3>组件与落地</h3>
+      <ul>
+        <li>统一卡片栅格（grid、card、thumb、body、info、difficulty）。</li>
+        <li>可抽象为 uni-app 组件：CourseCard、PromotionSlot、CategoryTabs。</li>
+        <li>状态管理：Pinia 域 store（course、promotion、user）。</li>
+      </ul>
+
+      <h3>交互与动效</h3>
+      <ul>
+        <li>点击反馈：轻微缩放；出现动效：fadeUp 进入。</li>
+        <li>分类/Tab 选中：颜色与字重变化，保持一致性。</li>
+        <li>重要操作保持低频动画，降低眩晕感。</li>
+      </ul>
+
+      <h3>无障碍与可达性（实现建议）</h3>
+      <ul>
+        <li>高对比模式与字号切换（可通过 CSS 变量动态切换）。</li>
+        <li>语音播报与语音搜索入口；关键提示具备文本与图标双通道。</li>
+        <li>键盘/读屏可达性（语义化标签与 ARIA）。</li>
+      </ul>
+    </aside>
+  </div>
+
+  <script>
+    // 分类筛选
+    const cateEls = document.querySelectorAll('.cate')
+    const featuredCards = Array.from(document.querySelectorAll('.featured .feat-card'))
+    const courseCards = Array.from(document.querySelectorAll('.grid .card'))
+
+    function matchByKey(tagsStr, key) {
+      if (!tagsStr) return false
+      const tags = tagsStr.split(',').map(s => s.trim())
+      return tags.includes(key)
+    }
+
+    function filterCourses(key) {
+      const showAll = key === 'all'
+
+      featuredCards.forEach(el => {
+        const tags = el.getAttribute('data-tags') || ''
+        el.style.display = (showAll || matchByKey(tags, key)) ? '' : 'none'
+      })
+
+      courseCards.forEach(el => {
+        const tags = el.getAttribute('data-tags') || ''
+        el.style.display = (showAll || matchByKey(tags, key)) ? '' : 'none'
+      })
+    }
+
+    cateEls.forEach(c => {
+      c.addEventListener('click', () => {
+        cateEls.forEach(i => i.classList.remove('active'))
+        c.classList.add('active')
+        const key = c.getAttribute('data-key') || 'all'
+        filterCourses(key)
+      })
+    })
+
+    // 初始：显示全部
+    filterCourses('all')
+
+    // 轻提示：示例（真实项目替换为路由跳转）
+    document.querySelectorAll('.more').forEach(m => m.addEventListener('click', (e) => {
+      e.preventDefault();
+      alert('查看更多课程（示例）')
+    }))
+  </script>
+</body>
+</html>

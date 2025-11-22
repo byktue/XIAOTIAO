@@ -1,0 +1,22 @@
+{
+  "pages": [
+    {
+      "path": "pages/course/index",
+      "style": {
+        "navigationBarTitleText": "课程学习"
+      }
+    },
+    {
+      "path": "pages/community/index",
+      "style": {
+        "navigationBarTitleText": "社区交流"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "white",
+    "navigationBarBackgroundColor": "#667eea",
+    "navigationBarTitleText": "小贴士",
+    "backgroundColor": "#f8f9fa"
+  }
+}

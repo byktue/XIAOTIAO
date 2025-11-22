@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App原型图</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .phone-container {
+            width: 375px;
+            height: 812px;
+            background: #000;
+            border-radius: 40px;
+            padding: 10px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            border-radius: 30px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .status-bar {
+            height: 44px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .screen-content {
+            height: calc(100% - 44px - 60px);
+            overflow-y: auto;
+            background: #f5f5f5;
+        }
+
+        .page {
+            display: none;
+            height: 100%;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* 首页样式 */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .search-bar {
+            margin: 20px;
+            background: white;
+            border-radius: 25px;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-bar input {
+            border: none;
+            outline: none;
+            flex: 1;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+
+        .category-section {
+            margin: 20px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+
+        .category-item {
+            background: white;
+            border-radius: 15px;
+            padding: 20px 10px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .category-item:active {
+            transform: scale(0.95);
+        }
+
+        .category-icon {
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 10px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .category-item:nth-child(1) .category-icon { background: #ff6b6b; }
+        .category-item:nth-child(2) .category-icon { background: #4ecdc4; }
+        .category-item:nth-child(3) .category-icon { background: #45b7d1; }
+        .category-item:nth-child(4) .category-icon { background: #f9ca24; }
+        .category-item:nth-child(5) .category-icon { background: #6c5ce7; }
+        .category-item:nth-child(6) .category-icon { background: #fd79a8; }
+        .category-item:nth-child(7) .category-icon { background: #55a3ff; }
+        .category-item:nth-child(8) .category-icon { background: #00b894; }
+
+        .category-name {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .featured-list {
+            margin: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .card:active {
+            transform: scale(0.98);
+        }
+
+        .card-image {
+            width: 100%;
+            height: 180px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 48px;
+        }
+
+        .card-content {
+            padding: 15px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .card-desc {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        /* 列表页样式 */
+        .list-header {
+            background: white;
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .back-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: none;
+            font-size: 18px;
+        }
+
+        .list-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .list-item {
+            background: white;
+            margin: 10px 20px;
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            cursor: pointer;
+        }
+
+        .list-item-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            margin-right: 15px;
+        }
+
+        .list-item-content {
+            flex: 1;
+        }
+
+        .list-item-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .list-item-subtitle {
+            font-size: 13px;
+            color: #999;
+        }
+
+        /* 详情页样式 */
+        .detail-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .detail-content {
+            padding: 20px;
+            background: white;
+            margin: 15px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        .detail-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .detail-text {
+            font-size: 15px;
+            line-height: 1.8;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .detail-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .action-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .action-btn:active {
+            opacity: 0.9;
+        }
+
+        /* 底部导航 */
+        .bottom-nav {
+            height: 60px;
+            background: white;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+        }
+
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.2s;
+        }
+
+        .nav-item.active {
+            color: #667eea;
+        }
+
+        .nav-icon {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        .nav-label {
+            font-size: 11px;
+        }
+
+        /* 滚动条样式 */
+        .screen-content::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .screen-content::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="phone-container">
+        <div class="phone-screen">
+            <div class="status-bar">
+                <span>9:41</span>
+                <span>📶 🔋</span>
+            </div>
+            
+            <div class="screen-content">
+                <!-- 首页 -->
+                <div class="page active" id="home">
+                    <div class="header">
+                        <h1>欢迎回来</h1>
+                        <p>发现更多精彩内容</p>
+                    </div>
+                    <div class="search-bar">
+                        <span>🔍</span>
+                        <input type="text" placeholder="搜索...">
+                    </div>
+                    <div class="category-section">
+                        <div class="section-title">分类</div>
+                        <div class="category-grid">
+                            <div class="category-item" onclick="showList('美食')">
+                                <div class="category-icon">🍔</div>
+                                <div class="category-name">美食</div>
+                            </div>
+                            <div class="category-item" onclick="showList('购物')">
+                                <div class="category-icon">🛍️</div>
+                                <div class="category-name">购物</div>
+                            </div>
+                            <div class="category-item" onclick="showList('旅行')">
+                                <div class="category-icon">✈️</div>
+                                <div class="category-name">旅行</div>
+                            </div>
+                            <div class="category-item" onclick="showList('娱乐')">
+                                <div class="category-icon">🎬</div>
+                                <div class="category-name">娱乐</div>
+                            </div>
+                            <div class="category-item" onclick="showList('运动')">
+                                <div class="category-icon">⚽</div>
+                                <div class="category-name">运动</div>
+                            </div>
+                            <div class="category-item" onclick="showList('学习')">
+                                <div class="category-icon">📚</div>
+                                <div class="category-name">学习</div>
+                            </div>
+                            <div class="category-item" onclick="showList('健康')">
+                                <div class="category-icon">💊</div>
+                                <div class="category-name">健康</div>
+                            </div>
+                            <div class="category-item" onclick="showList('其他')">
+                                <div class="category-icon">⚙️</div>
+                                <div class="category-name">其他</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="featured-list">
+                        <div class="section-title">推荐内容</div>
+                        <div class="card" onclick="showDetail('特色推荐 1', '这是一个精彩的内容推荐，包含了丰富的功能和信息。')">
+                            <div class="card-image">📱</div>
+                            <div class="card-content">
+                                <div class="card-title">特色推荐 1</div>
+                                <div class="card-desc">这是一个精彩的内容推荐，包含了丰富的功能和信息。</div>
+                            </div>
+                        </div>
+                        <div class="card" onclick="showDetail('特色推荐 2', '另一个值得关注的内容，提供独特的体验。')">
+                            <div class="card-image">🎨</div>
+                            <div class="card-content">
+                                <div class="card-title">特色推荐 2</div>
+                                <div class="card-desc">另一个值得关注的内容，提供独特的体验。</div>
+                            </div>
+                        </div>
+                        <div class="card" onclick="showDetail('特色推荐 3', '最新最热门的内容，不容错过。')">
+                            <div class="card-image">⭐</div>
+                            <div class="card-content">
+                                <div class="card-title">特色推荐 3</div>
+                                <div class="card-desc">最新最热门的内容，不容错过。</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 列表页 -->
+                <div class="page" id="list">
+                    <div class="list-header">
+                        <button class="back-btn" onclick="goHome()">←</button>
+                        <div class="list-title" id="listTitle">列表</div>
+                        <div style="width: 30px;"></div>
+                    </div>
+                    <div id="listContent"></div>
+                </div>
+
+                <!-- 详情页 -->
+                <div class="page" id="detail">
+                    <div class="detail-header">
+                        <button class="back-btn" onclick="goBack()" style="background: rgba(255,255,255,0.2); color: white;">←</button>
+                        <div style="flex: 1; text-align: center;">详情</div>
+                        <div style="width: 30px;"></div>
+                    </div>
+                    <div class="detail-content">
+                        <div class="detail-image">📄</div>
+                        <div class="detail-title" id="detailTitle">标题</div>
+                        <div class="detail-text" id="detailText">内容详情...</div>
+                        <button class="action-btn" onclick="alert('操作成功！')">立即操作</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bottom-nav">
+                <div class="nav-item active" onclick="switchNav(0)">
+                    <div class="nav-icon">🏠</div>
+                    <div class="nav-label">首页</div>
+                </div>
+                <div class="nav-item" onclick="switchNav(1)">
+                    <div class="nav-icon">📋</div>
+                    <div class="nav-label">列表</div>
+                </div>
+                <div class="nav-item" onclick="switchNav(2)">
+                    <div class="nav-icon">⭐</div>
+                    <div class="nav-label">收藏</div>
+                </div>
+                <div class="nav-item" onclick="switchNav(3)">
+                    <div class="nav-icon">👤</div>
+                    <div class="nav-label">我的</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 页面切换
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.getElementById(pageId).classList.add('active');
+        }
+
+        // 显示列表页
+        function showList(category) {
+            document.getElementById('listTitle').textContent = category;
+            const listContent = document.getElementById('listContent');
+            listContent.innerHTML = '';
+            
+            const items = [
+                { title: `${category}项目 1`, subtitle: '这是第一个项目' },
+                { title: `${category}项目 2`, subtitle: '这是第二个项目' },
+                { title: `${category}项目 3`, subtitle: '这是第三个项目' },
+                { title: `${category}项目 4`, subtitle: '这是第四个项目' },
+                { title: `${category}项目 5`, subtitle: '这是第五个项目' },
+            ];
+
+            items.forEach((item, index) => {
+                const listItem = document.createElement('div');
+                listItem.className = 'list-item';
+                listItem.onclick = () => showDetail(item.title, item.subtitle);
+                listItem.innerHTML = `
+                    <div class="list-item-icon">${index + 1}</div>
+                    <div class="list-item-content">
+                        <div class="list-item-title">${item.title}</div>
+                        <div class="list-item-subtitle">${item.subtitle}</div>
+                    </div>
+                `;
+                listContent.appendChild(listItem);
+            });
+
+            showPage('list');
+        }
+
+        // 显示详情页
+        function showDetail(title, text) {
+            document.getElementById('detailTitle').textContent = title;
+            document.getElementById('detailText').textContent = text;
+            showPage('detail');
+        }
+
+        // 返回首页
+        function goHome() {
+            showPage('home');
+        }
+
+        // 返回上一页
+        function goBack() {
+            const listPage = document.getElementById('list');
+            const detailPage = document.getElementById('detail');
+            
+            if (detailPage.classList.contains('active')) {
+                if (listPage.querySelector('.active')) {
+                    showPage('list');
+                } else {
+                    showPage('home');
+                }
+            } else if (listPage.classList.contains('active')) {
+                showPage('home');
+            }
+        }
+
+        // 底部导航切换
+        function switchNav(index) {
+            document.querySelectorAll('.nav-item').forEach((item, i) => {
+                if (i === index) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+
+            // 根据导航索引切换内容（这里简化处理）
+            if (index === 0) {
+                showPage('home');
+            } else {
+                alert(`切换到${['首页', '列表', '收藏', '我的'][index]}页面`);
+            }
+        }
+
+        // 触摸反馈
+        document.querySelectorAll('.category-item, .card, .list-item').forEach(item => {
+            item.addEventListener('touchstart', function() {
+                this.style.transform = 'scale(0.95)';
+            });
+            item.addEventListener('touchend', function() {
+                this.style.transform = 'scale(1)';
+            });
+        });
+    </script>
+</body>
+</html>
+
