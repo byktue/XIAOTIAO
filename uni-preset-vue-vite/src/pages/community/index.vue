@@ -55,10 +55,14 @@
         <view v-for="post in filteredPosts" :key="post.id" class="post-card animate" @tap="() => openPost(post)">
           <view class="post-header">
             <view class="user-info">
-              <!-- ...existing user info... -->
+              <view class="avatar">{{ post.avatar }}</view>
+              <view class="user-detail">
+                <text class="username">{{ post.username }}</text>
+                <text class="user-time">{{ post.time }}</text>
+              </view>
             </view>
             <view class="follow-btn" @tap.stop="() => toggleFollow(post)">
-              <!-- 关注按钮 -->
+              <text>{{ post.isFollowed ? '已关注' : '+关注' }}</text>
             </view>
           </view>
           <text class="post-content">{{ post.content }}</text>
@@ -66,7 +70,15 @@
             <view v-for="(img, idx) in post.images" :key="idx" class="post-img">{{ img }}</view>
           </view>
           <view class="post-actions">
-            <!-- ...action buttons... -->
+            <view class="action-btn" :class="{active: post.isLiked}" @tap.stop="() => toggleLike(post)">
+              <text>{{ post.isLiked ? '❤️' : '🤍' }} {{ post.likes }}</text>
+            </view>
+            <view class="action-btn" @tap.stop="() => openComments(post)">
+              <text>💬 {{ post.comments }}</text>
+            </view>
+            <view class="action-btn" @tap.stop="() => sharePost(post)">
+              <text>📤 分享</text>
+            </view>
           </view>
         </view>
       </view>
@@ -90,28 +102,85 @@
         <!-- 帖子预览 - 中下方添加带分割线的"评论区"标识 -->
         <view class="post-preview">
           <view class="user-info">
-            <!-- ...user preview... -->
+            <view class="avatar">{{ currentPost?.avatar }}</view>
+            <view class="user-detail">
+              <text class="username">{{ currentPost?.username }}</text>
+              <text class="user-time">{{ currentPost?.time }}</text>
+            </view>
           </view>
           <text class="post-content">{{ currentPost?.content }}</text>
           <!-- 带两侧分割线的评论区分隔标识（中下方） -->
           <view class="comment-section-divider">
-            <!-- divider -->
+            <view class="divider-line"></view>
+            <view class="comment-section-label">
+              <text>💬 评论区</text>
+            </view>
+            <view class="divider-line"></view>
           </view>
         </view>
 
         <!-- 评论列表 -->
         <scroll-view class="comment-list" scroll-y>
           <view v-if="currentPost?.commentsList.length === 0" class="no-comment">
-            <!-- 无评论提示 -->
+            <text>暂无评论，快来抢沙发～</text>
           </view>
           <view v-for="comment in currentPost?.commentsList" :key="comment.id" class="comment-item">
-            <!-- 评论项 -->
+            <view class="comment-header">
+              <view class="user-info">
+                <view class="avatar">{{ comment.avatar }}</view>
+                <view class="user-detail">
+                  <text class="username">{{ comment.username }}</text>
+                  <text class="user-time">{{ comment.time }}</text>
+                </view>
+              </view>
+              <view class="comment-actions">
+                <view class="action-btn" :class="{active: comment.isLiked}" @tap.stop="() => toggleCommentLike(comment)">
+                  <text>{{ comment.isLiked ? '❤️' : '🤍' }} {{ comment.likes }}</text>
+                </view>
+                <view class="reply-btn" @tap.stop="() => openReply(comment)">
+                  <text>回复</text>
+                </view>
+              </view>
+            </view>
+            <text class="comment-content">{{ comment.content }}</text>
+
+            <!-- 回复列表 -->
+            <view class="reply-list" v-if="comment.replies.length > 0">
+              <view v-for="reply in comment.replies" :key="reply.id" class="reply-item">
+                <view class="user-info">
+                  <view class="avatar mini">{{ reply.avatar }}</view>
+                  <view class="user-detail">
+                    <text class="username">{{ reply.username }}</text>
+                    <text class="user-time">{{ reply.time }}</text>
+                  </view>
+                </view>
+                <text class="reply-content">{{ reply.content }}</text>
+                <view class="reply-action" @tap.stop="() => openReply(comment, reply)">
+                  <text>回复</text>
+                </view>
+              </view>
+            </view>
+
+            <!-- 回复输入框（针对当前评论） -->
+            <view class="reply-input" v-if="replyToComment?.id === comment.id">
+              <input 
+                :value="replyInput" 
+                @input="(e) => replyInput = e.detail.value" 
+                placeholder="输入回复内容..." 
+              />
+              <view class="reply-btn-group">
+                <view class="cancel-btn" @tap.stop="cancelReply">取消</view>
+                <view class="send-btn" @tap.stop="() => sendReply(comment)">发送</view>
+              </view>
+            </view>
           </view>
         </scroll-view>
 
         <!-- 新增评论输入框 -->
         <view class="add-comment">
           <input 
+            :value="commentInput" 
+            @input="(e) => commentInput = e.detail.value" 
             placeholder="发表你的看法..." 
           />
           <view class="send-btn" @tap.stop="sendComment">发送</view>
@@ -125,10 +194,12 @@
         <text class="publish-title">选择发帖类型</text>
         <view class="publish-buttons">
           <view class="publish-btn-type" @tap.stop="() => selectPostType('topic')">
-            <!-- 话题 -->
+            <text class="icon">📢</text>
+            <text class="text">发起话题</text>
           </view>
           <view class="publish-btn-type" @tap.stop="() => selectPostType('post')">
-            <!-- 经验分享 -->
+            <text class="icon">📝</text>
+            <text class="text">经验分享</text>
           </view>
         </view>
         <view class="cancel-publish" @tap.stop="closePublishModal">
@@ -143,34 +214,50 @@
         <!-- 输入界面头部 -->
         <view class="post-input-header">
           <view class="back-btn" @tap.stop="goBackToSelect">
-            <!-- 返回 -->
+            <text>← 退出</text>
           </view>
           <text class="post-input-title">{{ postType === 'topic' ? '发起话题' : '经验分享' }}</text>
           <view class="send-btn" @tap.stop="submitPost">
-            <!-- 发送 -->
+            <text>发送</text>
           </view>
         </view>
 
         <!-- 话题输入表单（标题+内容） -->
         <view class="post-input-form" v-if="postType === 'topic'">
           <input 
+            v-model="topicForm.title" 
+            class="topic-title-input" 
             placeholder="请输入话题标题（必填）" 
           />
           <textarea 
+            v-model="topicForm.content" 
+            class="topic-content-input" 
             placeholder="请输入话题描述（可选）" 
           />
           <view class="topic-tag-select">
-            <!-- 标签选择 -->
+            <text class="label">选择标签：</text>
+            <view class="tag-buttons">
+              <view v-for="tag in topicTags" :key="tag.key" class="tag-btn" :class="{active: topicForm.tag === tag.key}" @tap.stop="() => topicForm.tag = tag.key">
+                {{ tag.name }}
+              </view>
+            </view>
           </view>
         </view>
 
         <!-- 经验分享输入表单（内容） -->
         <view class="post-input-form" v-if="postType === 'post'">
           <textarea 
+            v-model="postForm.content" 
+            class="post-content-input" 
             placeholder="请分享你的经验、心得或问题（必填）" 
           />
           <view class="post-tag-select">
-            <!-- 标签选择 -->
+            <text class="label">选择标签：</text>
+            <view class="tag-buttons">
+              <view v-for="tag in postTags" :key="tag.key" class="tag-btn" :class="{active: postForm.tag === tag.key}" @tap.stop="() => postForm.tag = tag.key">
+                {{ tag.name }}
+              </view>
+            </view>
           </view>
         </view>
       </view>
@@ -272,7 +359,18 @@ const posts = ref([
         isLiked: false,
         replies: [
           {
+            id: 'r1',
+            username: '张大爷',
+            avatar: '👴',
+            time: '20分钟前',
             content: '就是打开微信，找到联系人，点右上角的"+"号，里面有视频通话选项哦'
+          },
+          {
+            id: 'r2',
+            username: '李叔叔',
+            avatar: '👨‍🦳',
+            time: '15分钟前',
+            content: '我补充一下，要确保双方都有网络才行～'
           }
         ]
       },
@@ -309,7 +407,15 @@ const posts = ref([
         content: '请问太极拳几点开始呀？我也想去',
         likes: 5,
         isLiked: false,
-        replies: []
+        replies: [
+          {
+            id: 'r3',
+            username: '李大妈',
+            avatar: '👵',
+            time: '50分钟前',
+            content: '早上6点半在人民公园东门集合，我们有专门的老师指导～'
+          }
+        ]
       }
     ]
   },
@@ -413,6 +519,7 @@ function openReply(comment, reply = null) {
       if (rect) {
         uni.createSelectorQuery().in(this).select('.comment-list').scrollOffset(offset => {
           uni.createSelectorQuery().in(this).select('.comment-list').scrollTo({
+            top: offset.scrollTop + rect.top - 100,
             animated: true
           })
         }).exec()
@@ -1262,503 +1369,6 @@ function submitPost() {
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
-}
-
-.spacer {
-  height: 80rpx;
-  padding-bottom: constant(safe-area-inset-bottom);
-  padding-bottom: env(safe-area-inset-bottom);
-}
-</style>
-<template>
-  <view class="page">
-    <!-- 状态栏 -->
-    <view class="status-bar">
-      <text>9:41</text>
-      <text>📶 🔋</text>
-    </view>
-
-    <!-- 英雄区 -->
-    <view class="hero">
-      <text class="hero-title">社区交流</text>
-      <text class="hero-sub">分享经验，互助交流，共同成长</text>
-      <view class="search-bar">
-        <text>🔍</text>
-        <input :value="keyword" placeholder="搜索话题、内容或用户" @input="onInput" />
-      </view>
-    </view>
-
-    <!-- 分类导航 -->
-    <scroll-view class="categories" scroll-x :show-scrollbar="false">
-      <view class="cate-row">
-        <view v-for="c in categories" :key="c.key" class="cate" :class="{active: c.key===activeKey}" @tap="() => selectCate(c.key)">{{ c.name }}</view>
-      </view>
-    </scroll-view>
-
-    <!-- 热门话题 -->
-    <view class="section">
-      <view class="sec-head">
-        <text class="sec-title">热门话题</text>
-        <text class="more">查看更多</text>
-      </view>
-      <view class="topics">
-        <view v-for="topic in filteredTopics" :key="topic.id" class="topic-card animate" @tap="() => openTopic(topic)">
-          <view class="topic-header">
-            <text class="topic-tag"># {{ topic.tag }}</text>
-            <text class="topic-time">{{ topic.time }}</text>
-          </view>
-          <text class="topic-title">{{ topic.title }}</text>
-          <view class="topic-stats">
-            <text>💬 {{ topic.replies }}回复</text>
-            <text>👀 {{ topic.views }}浏览</text>
-            <text>🔥 {{ topic.hot }}热度</text>
-          </view>
-        </view>
-      </view>
-    </view>
-
-    <!-- 经验分享 -->
-    <view class="section">
-      <view class="sec-head">
-        <text class="sec-title">经验分享</text>
-        <text class="more">查看全部</text>
-      </view>
-      <view class="posts">
-        <view v-for="post in filteredPosts" :key="post.id" class="post-card animate" @tap="() => openPost(post)">
-          <view class="post-header">
-            <view class="user-info">
-              <view class="avatar">{{ post.avatar }}</view>
-              <view class="user-detail">
-                <text class="username">{{ post.username }}</text>
-                <text class="user-time">{{ post.time }}</text>
-              </view>
-            </view>
-            <view class="follow-btn" @tap.stop="() => toggleFollow(post)">
-              <text>{{ post.isFollowed ? '已关注' : '+关注' }}</text>
-            </view>
-          </view>
-          <text class="post-content">{{ post.content }}</text>
-          <view v-if="post.images" class="post-images">
-            <view v-for="(img, idx) in post.images" :key="idx" class="post-img">{{ img }}</view>
-          </view>
-          <view class="post-actions">
-            <view class="action-btn" :class="{active: post.isLiked}" @tap.stop="() => toggleLike(post)">
-              <text>{{ post.isLiked ? '❤️' : '🤍' }} {{ post.likes }}</text>
-            </view>
-            <view class="action-btn" @tap.stop="() => openComments(post)">
-              <text>💬 {{ post.comments }}</text>
-            </view>
-            <view class="action-btn" @tap.stop="() => sharePost(post)">
-              <text>📤 分享</text>
-            </view>
-          </view>
-        </view>
-      </view>
-    </view>
-
-    <!-- 发布按钮 -->
-    <view class="publish-btn" @tap="openPublish">
-      <text>✍️</text>
-    </view>
-
-    <view class="spacer" />
-  </view>
-</template>
-
-<script setup>
-import { ref, computed } from 'vue'
-
-const categories = ref([
-  { key: 'all', name: '全部' },
-  { key: 'health', name: '健康养生' },
-  { key: 'digital', name: '数码技巧' },
-  { key: 'life', name: '生活经验' },
-  { key: 'hobby', name: '兴趣爱好' },
-  { key: 'help', name: '互助问答' },
-  { key: 'activity', name: '同城活动' }
-])
-
-const activeKey = ref('all')
-const keyword = ref('')
-
-const topics = ref([
-  { id: 't1', title: '如何使用智能手机拍出清晰照片？', tag: '数码技巧', time: '2小时前', replies: 23, views: 156, hot: 89, tags: ['digital'] },
-  { id: 't2', title: '中老年人日常保健小贴士', tag: '健康养生', time: '3小时前', replies: 45, views: 289, hot: 156, tags: ['health'] },
-  { id: 't3', title: '如何防范电信诈骗？', tag: '生活经验', time: '5小时前', replies: 67, views: 423, hot: 234, tags: ['life'] }
-])
-
-const posts = ref([
-  {
-    id: 'p1',
-    username: '张大爷',
-    avatar: '👴',
-    time: '1小时前',
-    content: '今天学会了用微信视频通话，和孙子聊天真开心！分享给大家几个小技巧。',
-    images: ['📱', '😊'],
-    likes: 12,
-    comments: 8,
-    isLiked: false,
-    isFollowed: false,
-    tags: ['digital']
-  },
-  {
-    id: 'p2',
-    username: '李大妈',
-    avatar: '👵',
-    time: '2小时前',
-    content: '早上公园太极拳，身体很舒服。推荐给同龄朋友们，一起锻炼身体吧！',
-    images: ['🌅', '🧘‍♀️'],
-    likes: 25,
-    comments: 15,
-    isLiked: true,
-    isFollowed: true,
-    tags: ['health']
-  },
-  {
-    id: 'p3',
-    username: '王大爷',
-    avatar: '👨‍🦳',
-    time: '3小时前',
-    content: '今天在家做了红烧肉，孩子们都说好吃。年纪大了，做饭还是有一手的！',
-    likes: 18,
-    comments: 12,
-    isLiked: false,
-    isFollowed: false,
-    tags: ['life']
-  }
-])
-
-const filteredTopics = computed(() => {
-  const k = activeKey.value
-  const kw = keyword.value.trim()
-  return topics.value.filter(i => (k==='all' || i.tags.includes(k)) && (kw==='' || matchKw(i, kw)))
-})
-
-const filteredPosts = computed(() => {
-  const k = activeKey.value
-  const kw = keyword.value.trim()
-  return posts.value.filter(i => (k==='all' || i.tags.includes(k)) && (kw==='' || matchKw(i, kw)))
-})
-
-function matchKw(item, kw) {
-  return item.title?.includes(kw) || item.content?.includes(kw) || item.username?.includes(kw)
-}
-
-function selectCate(k) {
-  activeKey.value = k
-}
-
-function onInput(e) {
-  keyword.value = e.detail.value
-}
-
-function openTopic(topic) {
-  uni.showToast({ title: `进入话题：${topic.title}`, icon: 'none' })
-}
-
-function openPost(post) {
-  uni.showToast({ title: `查看帖子：${post.username}的分享`, icon: 'none' })
-}
-
-function toggleLike(post) {
-  post.isLiked = !post.isLiked
-  post.likes += post.isLiked ? 1 : -1
-  uni.showToast({ title: post.isLiked ? '已点赞' : '取消点赞', icon: 'success' })
-}
-
-function toggleFollow(post) {
-  post.isFollowed = !post.isFollowed
-  uni.showToast({ title: post.isFollowed ? '已关注' : '取消关注', icon: 'success' })
-}
-
-function openComments(post) {
-  uni.showToast({ title: `查看评论(${post.comments})`, icon: 'none' })
-}
-
-function sharePost(post) {
-  uni.showToast({ title: '分享成功', icon: 'success' })
-}
-
-function openPublish() {
-  uni.showToast({ title: '发布新帖子', icon: 'none' })
-}
-</script>
-
-<style scoped>
-.page {
-  background: #f8f9fa;
-  min-height: 100vh;
-  color: #1d2129;
-  font-size: 36rpx;
-  line-height: 1.6;
-}
-
-/* 状态栏 */
-.status-bar {
-  height: 88rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 36rpx;
-  font-weight: 600;
-}
-
-/* 英雄区 */
-.hero {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #fff;
-  padding: 36rpx;
-}
-.hero-title {
-  font-size: 48rpx;
-  font-weight: 700;
-  margin-bottom: 12rpx;
-}
-.hero-sub {
-  opacity: .9;
-  font-size: 30rpx;
-  margin-bottom: 24rpx;
-  display: block;
-}
-.search-bar {
-  display: flex;
-  align-items: center;
-  gap: 20rpx;
-  background: rgba(255,255,255,.2);
-  border-radius: 999rpx;
-  padding: 20rpx 28rpx;
-  backdrop-filter: blur(8px);
-}
-.search-bar input {
-  border: none;
-  outline: none;
-  flex: 1;
-  background: transparent;
-  color: #fff;
-  font-size: 32rpx;
-}
-
-/* 分类导航 */
-.categories {
-  background: #fff;
-  border-bottom: 2rpx solid #e9ecef;
-  overflow-x: auto;
-}
-.cate-row {
-  display: flex;
-  gap: 20rpx;
-  padding: 28rpx 24rpx;
-}
-.cate {
-  flex: 0 0 auto;
-  min-width: 176rpx;
-  text-align: center;
-  background: #f5f6f8;
-  color: #5c6670;
-  border: 2rpx solid #e9ecef;
-  border-radius: 999rpx;
-  padding: 20rpx 28rpx;
-  font-size: 30rpx;
-  cursor: pointer;
-  user-select: none;
-  transition: .2s all;
-}
-.cate:active { transform: scale(.95); }
-.cate.active {
-  color: #fff;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-color: transparent;
-}
-
-/* 区块与卡片 */
-.section {
-  padding: 32rpx 28rpx;
-}
-.sec-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24rpx;
-}
-.sec-title {
-  font-size: 36rpx;
-  font-weight: 700;
-}
-.more {
-  color: #667eea;
-  font-size: 28rpx;
-  text-decoration: none;
-}
-
-/* 话题卡片 */
-.topics {
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-}
-.topic-card {
-  background: #fff;
-  border: 2rpx solid #f0f1f3;
-  border-radius: 24rpx;
-  padding: 24rpx;
-  box-shadow: 0 4rpx 20rpx rgba(0,0,0,.06);
-}
-.topic-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12rpx;
-}
-.topic-tag {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: #fff;
-  padding: 6rpx 16rpx;
-  border-radius: 16rpx;
-  font-size: 24rpx;
-  font-weight: 600;
-}
-.topic-time {
-  color: #7b8794;
-  font-size: 26rpx;
-}
-.topic-title {
-  font-size: 32rpx;
-  font-weight: 600;
-  margin-bottom: 16rpx;
-  line-height: 1.5;
-}
-.topic-stats {
-  display: flex;
-  gap: 24rpx;
-  color: #7b8794;
-  font-size: 26rpx;
-}
-
-/* 帖子卡片 */
-.posts {
-  display: flex;
-  flex-direction: column;
-  gap: 24rpx;
-}
-.post-card {
-  background: #fff;
-  border: 2rpx solid #f0f1f3;
-  border-radius: 24rpx;
-  padding: 24rpx;
-  box-shadow: 0 4rpx 20rpx rgba(0,0,0,.06);
-}
-.post-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16rpx;
-}
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-}
-.avatar {
-  width: 80rpx;
-  height: 80rpx;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 32rpx;
-}
-.user-detail {
-  display: flex;
-  flex-direction: column;
-}
-.username {
-  font-size: 30rpx;
-  font-weight: 600;
-  margin-bottom: 4rpx;
-}
-.user-time {
-  color: #7b8794;
-  font-size: 24rpx;
-}
-.follow-btn {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: #fff;
-  padding: 12rpx 24rpx;
-  border-radius: 999rpx;
-  font-size: 26rpx;
-  font-weight: 600;
-}
-.post-content {
-  font-size: 32rpx;
-  line-height: 1.6;
-  margin-bottom: 16rpx;
-}
-.post-images {
-  display: flex;
-  gap: 12rpx;
-  margin-bottom: 16rpx;
-}
-.post-img {
-  width: 120rpx;
-  height: 120rpx;
-  border-radius: 16rpx;
-  background: linear-gradient(45deg, #f0f2f5, #e9ecef);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 48rpx;
-}
-.post-actions {
-  display: flex;
-  gap: 32rpx;
-  padding-top: 16rpx;
-  border-top: 2rpx solid #f0f1f3;
-}
-.action-btn {
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
-  color: #7b8794;
-  font-size: 28rpx;
-  padding: 8rpx 16rpx;
-  border-radius: 16rpx;
-  transition: .2s all;
-}
-.action-btn:active {
-  background: #f0f1f3;
-}
-.action-btn.active {
-  color: #ff6b6b;
-}
-
-/* 发布按钮 */
-.publish-btn {
-  position: fixed;
-  bottom: 120rpx;
-  right: 40rpx;
-  width: 120rpx;
-  height: 120rpx;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 8rpx 24rpx rgba(102, 126, 234, 0.4);
-  z-index: 100;
-  color: #fff;
-  font-size: 48rpx;
-}
-
-/* 动效 */
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(32rpx) }
-  to { opacity: 1; transform: translateY(0) }
-}
-.animate {
-  animation: fadeUp .5s ease-out;
 }
 
 .spacer {
