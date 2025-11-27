@@ -53,7 +53,30 @@ export function speak(text) {
   if (!getVoicePreference()) {
     return false
   }
-  console.info('[voice-placeholder] speak:', text)
+  const msgText = String(text || '')
+  console.info('[voice] speak:', msgText)
+  // H5: 使用 Web Speech API（SpeechSynthesis）在浏览器中发声
+  try {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      const utter = new SpeechSynthesisUtterance(msgText)
+      // 尝试选择中文语音（若可用）
+      const voices = window.speechSynthesis.getVoices()
+      if (voices && voices.length) {
+        utter.voice = voices.find(v => /zh|cn|ch/i.test(v.lang)) || voices[0]
+      }
+      // 兼容设置
+      utter.lang = utter.lang || (navigator.language || 'zh-CN')
+      utter.rate = 1
+      // 取消当前队列并播放
+      try { window.speechSynthesis.cancel() } catch (e) {}
+      window.speechSynthesis.speak(utter)
+      return true
+    }
+  } catch (err) {
+    console.warn('[voice] TTS failed', err)
+  }
+
+  // fallback: 仍然记录并返回 true（不影响调用方）
   return true
 }
 
