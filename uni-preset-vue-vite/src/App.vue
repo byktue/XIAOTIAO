@@ -45,18 +45,25 @@ function annotateGenericImages() {
 function ensureFormLabels() {
   if (typeof document === 'undefined') return
   const fallback = '请输入密码'
+  let fieldCounter = 0
   const describeInput = el => {
     const type = (el.getAttribute('type') || '').toLowerCase()
     const label = el.getAttribute('aria-label') || el.getAttribute('title') || el.getAttribute('placeholder') || fallback
     if (!el.getAttribute('title')) el.setAttribute('title', label)
     if (!el.getAttribute('aria-label')) el.setAttribute('aria-label', label)
+    // Ensure an id exists so label[for] can target it
+    if (!el.id) {
+      el.id = `auto-field-${Date.now()}-${fieldCounter++}`
+    }
+    // Ensure a name exists for form submission and accessibility
+    if (!el.getAttribute('name')) {
+      // Prefer placeholder-derived name, otherwise generate a stable key
+      const name = (el.getAttribute('placeholder') || label || 'field').toLowerCase().replace(/[^a-z0-9]+/g, '-')
+      el.setAttribute('name', `${name}-${fieldCounter}`)
+    }
   }
   document.querySelectorAll('input:not([data-skip-a11y])').forEach(describeInput)
-  document.querySelectorAll('textarea:not([data-skip-a11y])').forEach(el => {
-    const label = el.getAttribute('aria-label') || el.getAttribute('title') || el.getAttribute('placeholder') || fallback
-    if (!el.getAttribute('title')) el.setAttribute('title', label)
-    if (!el.getAttribute('aria-label')) el.setAttribute('aria-label', label)
-  })
+  document.querySelectorAll('textarea:not([data-skip-a11y])').forEach(describeInput)
 }
 
 if (typeof window !== 'undefined' && typeof MutationObserver !== 'undefined') {

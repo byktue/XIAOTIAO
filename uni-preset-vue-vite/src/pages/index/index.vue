@@ -210,12 +210,16 @@ function openNews(news) {
 }
 
 function openMore(section) {
-  const sectionName = section === 'news' ? '最新动态' : '今日推荐'
-  const message = `即将打开${sectionName}更多内容`
+  const mapping = {
+    recommend: { url: '/pages/course/all?section=recommend', name: '今日推荐' },
+    news: { url: '/pages/community/all?section=news', name: '最新动态' }
+  }
+  const info = mapping[section] || { url: '/pages/course/all', name: '更多内容' }
+  const message = `即将打开${info.name}`
   setHelperHint(message)
   speak(message)
   vibrateShort({ style: 'light' })
-  uni.showToast({ title: `${sectionName}加载中`, icon: 'none' })
+  uni.navigateTo({ url: info.url })
 }
 
 onMounted(() => {

@@ -292,7 +292,8 @@ function editProfile() {
 }
 
 function viewAllCourses() {
-  uni.navigateTo({ url: '/pages/profile/progress' })
+  // 跳转到课程的“全部”页面，并带上用户相关的 section 标记
+  uni.navigateTo({ url: '/pages/course/all?section=my' })
 }
 
 function continueCourse(course) {

@@ -94,11 +94,38 @@
 			}
 		},
 		{
+			"path": "pages/profile/publish-chooser",
+			"style": {
+				"navigationBarTitleText": "选择发帖类型",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/profile/publish",
+			"style": {
+				"navigationBarTitleText": "发布动态",
+				"navigationStyle": "default"
+			}
+		},
+		{
 			"path": "pages/profile/support",
 			"style": {
 				"navigationBarTitleText": "客服中心",
 				"navigationStyle": "default"
 			}
+		}
+		,
+		{
+			"path": "pages/course/all",
+			"style": { "navigationBarTitleText": "全部课程", "navigationStyle": "default" }
+		},
+		{
+			"path": "pages/shop/all",
+			"style": { "navigationBarTitleText": "全部商品", "navigationStyle": "default" }
+		},
+		{
+			"path": "pages/community/all",
+			"style": { "navigationBarTitleText": "社区全部", "navigationStyle": "default" }
 		}
 	],
 	"tabBar": {

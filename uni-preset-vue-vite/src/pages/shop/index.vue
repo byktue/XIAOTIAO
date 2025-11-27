@@ -273,10 +273,8 @@ function openCart() {
 }
 
 function openMore(section) {
-  const sectionName = section === 'hot' ? '热门商品' : '推荐商品'
-  setHelperHint(`即将展示更多${sectionName}`, { voice: true })
-  vibrateShort({ style: 'light' })
-  uni.showToast({ title: `${sectionName}加载中`, icon: 'none' })
+  // 跳转到商品列表页（全量列表）
+  uni.navigateTo({ url: `/pages/shop/all?section=${section}` })
 }
 
 watch([filteredFeatured, filteredProducts, activeKey, keyword], () => {

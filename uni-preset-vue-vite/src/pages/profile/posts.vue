@@ -28,6 +28,7 @@
           <button size="mini" @tap="() => editPost(post)">编辑</button>
           <button size="mini" type="warn" @tap="() => deletePost(post)">删除</button>
         </view>
+        <PublishChooser v-if="showChooser" @choose="onChooseType" @cancel="closeChooser" />
       </view>
     </view>
   </view>
@@ -36,6 +37,7 @@
 <script setup>
 import { ref } from 'vue'
 import { speak } from '../../services/voice.js'
+import PublishChooser from '../../components/PublishChooser.vue'
 
 const posts = ref([
   {
@@ -47,7 +49,7 @@ const posts = ref([
     likes: 32,
     comments: 6,
     views: 188,
-    images: ['https://via.placeholder.com/160']
+    images: ['/_proxy?url=https%3A%2F%2Fvia.placeholder.com%2F160']
   },
   {
     id: 'post2',
@@ -61,10 +63,21 @@ const posts = ref([
   }
 ])
 
+const showChooser = ref(false)
+
 function createPost() {
-  speak('创建新的动态')
-  uni.showToast({ title: '打开发布器', icon: 'none' })
+  speak('已打开发帖类型选择，请选择话题或经验分享')
+  showChooser.value = true
 }
+
+function onChooseType(type) {
+  // set storage fallback and navigate to publish page
+  try { uni.setStorageSync('publishType', type) } catch (e) {}
+  uni.navigateTo({ url: `/pages/profile/publish?type=${type}`, animationType: 'pop-in', animationDuration: 220 })
+  showChooser.value = false
+}
+
+function closeChooser() { showChooser.value = false }
 
 function editPost(post) {
   speak(`编辑 ${post.title}`)
@@ -83,6 +96,8 @@ function deletePost(post) {
     }
   })
 }
+
+// 发布类型现在在独立页面 `publish-chooser.vue` 处理
 </script>
 
 <style scoped>
@@ -176,4 +191,31 @@ function deletePost(post) {
   border-radius: 999rpx;
   margin-left: 12rpx;
 }
+
+/* 发布选择弹窗样式 */
+.chooser-overlay {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 30rpx;
+  z-index: 20;
+}
+.chooser-card {
+  width: 100%;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 36rpx 28rpx;
+  box-shadow: 0 20rpx 40rpx rgba(0,0,0,0.1);
+}
+.chooser-title { text-align:center; font-size:34rpx; font-weight:700; margin-bottom:28rpx }
+.chooser-grid { display:flex; gap:24rpx; justify-content:center }
+.chooser-item { flex:1; background: linear-gradient(135deg,#667eea,#764ba2); color:#fff; padding:30rpx; border-radius:20rpx; text-align:center }
+.chooser-item .icon { font-size:56rpx; margin-bottom:16rpx }
+.chooser-cancel { margin-top:22rpx; background:#f3f5f9; color:#6b7280; padding:18rpx; border-radius:14rpx; text-align:center }
 </style>

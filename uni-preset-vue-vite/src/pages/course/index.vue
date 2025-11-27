@@ -46,7 +46,7 @@
     <view class="section">
       <view class="sec-head">
         <text class="sec-title">精选推荐</text>
-        <text class="more">查看更多</text>
+        <text class="more" @tap="() => openAll('featured')">查看更多</text>
       </view>
       <view class="featured">
         <view v-for="item in filteredFeatured" :key="item.id" class="feat-card animate" @tap="() => openDetail(item)">
@@ -73,7 +73,7 @@
     <view class="section">
       <view class="sec-head">
         <text class="sec-title">热门课程</text>
-        <text class="more">查看全部</text>
+        <text class="more" @tap="() => openAll('hot')">查看全部</text>
       </view>
       <view class="grid">
         <view v-for="item in filteredCourses" :key="item.id" class="card animate" @tap="() => openDetail(item)">
@@ -107,7 +107,7 @@
     <view class="section">
       <view class="sec-head">
         <text class="sec-title">最近学习</text>
-        <text class="more">查看全部</text>
+        <text class="more" @tap="() => openAll('recent')">查看全部</text>
       </view>
       <view class="grid">
         <view class="card animate">
@@ -357,6 +357,11 @@ function getTagName(tagKey) {
 function openDetail(item) {
   speak(`即将打开课程 ${item.title}`)
   uni.showToast({ title: `打开：${item.title}`, icon: 'none' })
+}
+
+function openAll(section) {
+  // navigate to unified 'all' page for courses, pass section as query
+  uni.navigateTo({ url: `/pages/course/all?section=${section}` })
 }
 
 function getCategoryLabel(key) {

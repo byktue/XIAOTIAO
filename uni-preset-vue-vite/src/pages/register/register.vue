@@ -158,14 +158,6 @@ export default {
       const hints = {
         username: '账号输入框已聚焦，请输入注册账号',
         password: '密码输入框已聚焦，请输入至少六位密码',
-    getDynamicPlaceholder(field) {
-      const base = this.placeholderTexts?.[field] || ''
-      const value = this.formData?.[field]
-      return value ? '' : base
-    },
-    getPlaceholderStyle(field) {
-      const value = this.formData?.[field]
-      return value ? 'color: transparent;' : 'color: #b0b8c3;'
         confirm: '确认密码输入框已聚焦，请再次输入密码',
         phone: '手机号输入框已聚焦，可选填'
       }
@@ -184,8 +176,14 @@ export default {
       this.showConfirmPassword = !this.showConfirmPassword
     },
     handleLogin() {
-      speak('即将返回登录页面')
-      uni.navigateBack()
+      speak('即将前往登录页面')
+      // 明确跳转到登录页面，避免依赖返回栈
+      try {
+        uni.navigateTo({ url: '/pages/login/login' })
+      } catch (e) {
+        // 若 navigateTo 不可用（例如登录为 tab 页面），尝试 reLaunch
+        try { uni.reLaunch({ url: '/pages/login/login' }) } catch (err) { console.warn('导航至登录页失败', err) }
+      }
     },
     async handleRegister() {
       speak('注册按钮已按下，正在检查表单')

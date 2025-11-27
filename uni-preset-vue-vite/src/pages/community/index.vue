@@ -39,7 +39,7 @@
     <view class="section">
       <view class="sec-head">
         <text class="sec-title">热门话题</text>
-        <text class="more">查看更多</text>
+        <text class="more" @tap="() => openAll('topics')">查看更多</text>
       </view>
       <view class="topics">
         <view v-for="topic in filteredTopics" :key="topic.id" class="topic-card animate" @tap="() => openTopic(topic)">
@@ -61,7 +61,7 @@
     <view class="section">
       <view class="sec-head">
         <text class="sec-title">经验分享</text>
-        <text class="more">查看全部</text>
+        <text class="more" @tap="() => openAll('posts')">查看全部</text>
       </view>
       <view class="posts">
         <view v-for="post in filteredPosts" :key="post.id" class="post-card animate" @tap="() => openPost(post)">
@@ -204,25 +204,8 @@
       </view>
     </view>
 
-    <!-- 新增：发帖类型选择弹窗（从下往上弹出） -->
-    <view class="publish-modal" v-if="showPublishModal" @tap="closePublishModal">
-      <view class="publish-content" @tap.stop>
-        <text class="publish-title">选择发帖类型</text>
-        <view class="publish-buttons">
-          <view class="publish-btn-type" @tap.stop="() => selectPostType('topic')">
-            <text class="icon">📢</text>
-            <text class="text">发起话题</text>
-          </view>
-          <view class="publish-btn-type" @tap.stop="() => selectPostType('post')">
-            <text class="icon">📝</text>
-            <text class="text">经验分享</text>
-          </view>
-        </view>
-        <view class="cancel-publish" @tap.stop="closePublishModal">
-          <text>取消</text>
-        </view>
-      </view>
-    </view>
+    <!-- 使用组件化的发帖类型选择（页面内 bottom-sheet） -->
+    <PublishChooser v-if="showPublishModal" @choose="selectPostType" @cancel="closePublishModal" />
 
     <!-- 新增：发帖输入界面（从下往上弹出） -->
     <view class="post-input-modal" v-if="showPostInput" @tap="closePostInput">
@@ -296,6 +279,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import PublishChooser from '../../components/PublishChooser.vue'
 import { speak, vibrateShort } from '../../services/voice.js'
 
 const categories = ref([
@@ -685,8 +669,9 @@ function sharePost(post) {
 
 // 新增：发帖功能相关函数
 function openPublish() {
+  // 在当前页面展示组件化的 bottom-sheet
   showPublishModal.value = true
-  speak('已打开发帖类型选择，请选择话题或经验分享')
+  try { speak('已打开发帖类型选择，请选择话题或经验分享') } catch (e) {}
 }
 
 function closePublishModal() {
@@ -696,19 +681,13 @@ function closePublishModal() {
 
 // 选择发帖类型
 function selectPostType(type) {
-  postType.value = type
+  // 统一到发布器页面（与我的发布保持一致）
+  try { uni.setStorageSync('publishType', type) } catch (e) {}
+  try { speak(type === 'topic' ? '准备发起新话题' : '准备分享新经验') } catch (e) {}
   showPublishModal.value = false
-  speak(type === 'topic' ? '准备发起新话题' : '准备分享新经验')
-  // 重置表单
-  if (type === 'topic') {
-    topicForm.value = { title: '', content: '', tag: 'digital' }
-  } else {
-    postForm.value = { content: '', tag: 'digital' }
-  }
-  // 延迟显示输入界面，保证动画流畅
-  setTimeout(() => {
-    showPostInput.value = true
-  }, 300)
+  // 直接跳转到统一的发布页面，让用户在同一发布器完成输入（支持标签、图片等）
+  try { uni.setStorageSync('publishCategory', activeKey.value) } catch (e) {}
+  uni.navigateTo({ url: `/pages/profile/publish?type=${type}&category=${activeKey.value}`, animationType: 'pop-in', animationDuration: 220 })
 }
 
 // 返回类型选择界面
@@ -779,6 +758,16 @@ function submitPost() {
   setTimeout(() => {
     showSuccessToast.value = false
   }, 3000)
+}
+
+// 打开社区“全部”列表页
+function openAll(section) {
+  const sectionName = section === 'topics' ? '热门话题' : '经验分享'
+  try { uni.setStorageSync('communitySection', section) } catch (e) {}
+  showHint(`正在打开${sectionName}的全部列表`, { voice: true })
+  try { speak(`打开${sectionName}全部列表`) } catch (e) {}
+  vibrateShort({ style: 'light' })
+  uni.navigateTo({ url: `/pages/community/all?section=${section}` })
 }
 </script>
 
@@ -1071,7 +1060,7 @@ function submitPost() {
 /* 发布按钮（原有） */
 .publish-btn {
   position: fixed;
-  bottom: 120rpx;
+  bottom: 200rpx;
   right: 40rpx;
   width: 120rpx;
   height: 120rpx;
