@@ -71,8 +71,10 @@
           <view class="menu-icon" :style="menu.iconStyle">
             <text>{{ menu.icon }}</text>
           </view>
-          <text class="menu-title">{{ menu.title }}</text>
-          <text class="menu-desc">{{ menu.desc }}</text>
+          <view class="menu-content">
+            <text class="menu-title">{{ menu.title }}</text>
+            <text class="menu-desc">{{ menu.desc }}</text>
+          </view>
           <text class="menu-arrow">›</text>
         </view>
       </view>
@@ -109,7 +111,8 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, onUnmounted, ref } from 'vue'
+import { getVoicePreference, onVoicePreferenceChange, speak, toggleVoicePreference } from '../../services/voice.js'
 
 const userInfo = ref({
   name: '张大爷',
@@ -185,38 +188,43 @@ const menuList = ref([
   }
 ])
 
-const settingList = ref([
+const voiceEnabled = ref(getVoicePreference())
+const stopVoiceListener = onVoicePreferenceChange((enabled) => {
+  voiceEnabled.value = enabled
+})
+
+const settingList = computed(() => [
   {
-    id: 's1',
+    id: 'font-size',
     title: '字体大小',
     icon: '🔤',
     value: '大'
   },
   {
-    id: 's2',
+    id: 'voice-broadcast',
     title: '语音播报',
     icon: '🔊',
-    value: '开启'
+    value: voiceEnabled.value ? '开启' : '关闭'
   },
   {
-    id: 's3',
+    id: 'dark-mode',
     title: '夜间模式',
     icon: '🌙',
     value: '关闭'
   },
   {
-    id: 's4',
+    id: 'notifications',
     title: '消息通知',
     icon: '🔔',
     value: '开启'
   },
   {
-    id: 's5',
+    id: 'privacy',
     title: '隐私设置',
     icon: '🔒'
   },
   {
-    id: 's6',
+    id: 'about',
     title: '关于我们',
     icon: 'ℹ️'
   }
@@ -239,6 +247,13 @@ function openMenu(menu) {
 }
 
 function openSetting(setting) {
+  if (setting.id === 'voice-broadcast') {
+    const nextState = toggleVoicePreference()
+    voiceEnabled.value = nextState
+    speak(`语音播报已${nextState ? '开启' : '关闭'}`)
+    uni.showToast({ title: `语音播报${nextState ? '已开启' : '已关闭'}`, icon: 'none' })
+    return
+  }
   uni.showToast({ title: `设置：${setting.title}`, icon: 'none' })
 }
 
@@ -255,6 +270,10 @@ function logout() {
     }
   })
 }
+
+onUnmounted(() => {
+  stopVoiceListener?.()
+})
 </script>
 
 <style scoped>
@@ -441,18 +460,19 @@ function logout() {
   font-size: 32rpx;
   flex-shrink: 0;
 }
+.menu-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
 .menu-title {
   font-size: 32rpx;
   font-weight: 600;
   margin-bottom: 4rpx;
-  flex: 1;
 }
 .menu-desc {
   font-size: 26rpx;
   color: #7b8794;
-  position: absolute;
-  margin-top: 36rpx;
-  margin-left: 100rpx;
 }
 .menu-arrow {
   color: #c4c6cc;
