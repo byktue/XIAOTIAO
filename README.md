@@ -23,7 +23,10 @@ cd uni-preset-vue-vite
 npm install
 ```
 
+位于uni-preset-vue-vite目录下
 启动dev server
 ```bash
 npm run dev:h5
 ```
+
+用浏览器 DevTools 的设备工具栏（Ctrl+Shift+M），配合常见视口尺寸即可快速预览手机页面

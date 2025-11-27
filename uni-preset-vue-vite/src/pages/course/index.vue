@@ -11,24 +11,36 @@
       <text class="hero-title">课程学习</text>
       <text class="hero-sub">精选课程 + 适老化交互，让学习更轻松</text>
       <view class="search-bar">
-        <text>🔍</text>
-        <input :value="keyword" placeholder="搜索课程、讲师或关键词" @input="onInput" />
+        <text class="search-icon">🔍</text>
+        <input
+          :value="keyword"
+          placeholder="搜索课程、讲师或关键词"
+          aria-label="课程搜索输入框"
+          title="搜索课程、讲师或关键词"
+          @focus="onSearchFocus"
+          @input="onInput"
+          @confirm="onSearchConfirm"
+        />
       </view>
     </view>
 
     <!-- 分类导航 -->
-    <scroll-view class="categories" scroll-x :show-scrollbar="false">
+    <scroll-view class="categories" :class="{ shake: filterFeedback }" scroll-x :show-scrollbar="false">
       <view class="cate-row">
         <view v-for="c in categories" :key="c.key" class="cate" :class="{active: c.key===activeKey}" @tap="() => selectCate(c.key)">{{ c.name }}</view>
       </view>
     </scroll-view>
 
     <!-- 课程形式筛选（与分类样式完全相同） -->
-    <scroll-view class="categories" scroll-x :show-scrollbar="false">
+    <scroll-view class="categories" :class="{ shake: filterFeedback }" scroll-x :show-scrollbar="false">
       <view class="cate-row">
         <view v-for="f in formTypes" :key="f.key" class="cate" :class="{active: f.key===activeFormKey}" @tap="() => selectForm(f.key)">{{ f.name }}</view>
       </view>
     </scroll-view>
+
+    <view v-if="resultHint" class="result-hint" :class="{ alert: filterFeedback }">
+      <text>{{ resultHint }}</text>
+    </view>
 
     <!-- 精选推荐 -->
     <view class="section">
@@ -124,7 +136,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { speak, vibrateShort } from '../../services/voice.js'
 
 const categories = ref([
   { key: 'all', name: '全部' },
@@ -148,6 +161,8 @@ const formTypes = ref([
 const activeKey = ref('all') // 分类激活状态
 const activeFormKey = ref('all') // 形式激活状态
 const keyword = ref('')
+const resultHint = ref('')
+const filterFeedback = ref(false)
 
 // 课程形式映射（便于管理）
 const courseTypeMap = {
@@ -278,16 +293,38 @@ function matchKw(item, kw) {
 
 // 分类选择
 function selectCate(k) {
+  if (activeKey.value === k) {
+    speak(`已处于${getCategoryLabel(k)}分类`)
+    return
+  }
   activeKey.value = k
+  speak(`已切换到${getCategoryLabel(k)}分类`)
 }
 
 // 形式选择（与分类交互逻辑完全相同）
 function selectForm(fk) {
+  if (activeFormKey.value === fk) {
+    speak(`已处于${getFormLabel(fk)}`)
+    return
+  }
   activeFormKey.value = fk
+  speak(`已切换到${getFormLabel(fk)}`)
 }
 
 function onInput(e) {
   keyword.value = e.detail.value
+}
+
+function onSearchFocus() {
+  speak('搜索框已激活，可输入课程、讲师或关键字')
+}
+
+function onSearchConfirm() {
+  if (!keyword.value.trim()) {
+    showHint('请输入要搜索的内容', { warning: true, voice: true })
+    return
+  }
+  speak(`正在搜索 ${keyword.value.trim()}，请稍候`)
 }
 
 function difficultyClass(d) {
@@ -318,64 +355,131 @@ function getTagName(tagKey) {
 }
 
 function openDetail(item) {
+  speak(`即将打开课程 ${item.title}`)
   uni.showToast({ title: `打开：${item.title}`, icon: 'none' })
 }
+
+function getCategoryLabel(key) {
+  if (key === 'all') return '全部'
+  return categories.value.find(c => c.key === key)?.name || '全部'
+}
+
+function getFormLabel(key) {
+  if (key === 'all') return '全部形式'
+  return formTypes.value.find(f => f.key === key)?.name || '全部形式'
+}
+
+let hintTimer = null
+function showHint(message, options = {}) {
+  resultHint.value = message
+  filterFeedback.value = !!options.warning
+  if (filterFeedback.value && options.vibrate !== false) {
+    feedbackPulse()
+  }
+  if (options.voice) {
+    speak(message)
+  }
+  if (hintTimer) {
+    clearTimeout(hintTimer)
+  }
+  hintTimer = setTimeout(() => {
+    resultHint.value = ''
+    filterFeedback.value = false
+  }, options.warning ? 2400 : 1600)
+}
+
+function feedbackPulse() {
+  vibrateShort({ style: 'heavy' })
+}
+
+let hasAnnouncedCourse = false
+watch(
+  () => filteredCourses.value.length,
+  (count) => {
+    if (!hasAnnouncedCourse) {
+      hasAnnouncedCourse = true
+      if (count > 0) {
+        speak(`当前共有${count}门课程可供学习`)
+      }
+      return
+    }
+    if (count === 0) {
+      showHint('没有匹配的课程，请尝试调整筛选条件', { warning: true, voice: true })
+    } else {
+      showHint(`已筛选出${count}门课程`, { voice: true })
+    }
+  }
+)
 </script>
 
 <style scoped>
-.page { 
-  background: #f8f9fa; 
-  min-height: 100vh; 
-  color: #1d2129; 
-  font-size: 36rpx; 
-  line-height: 1.6; 
+.page {
+  background: linear-gradient(180deg, #f7f9fc 0%, #edf1f7 100%);
+  min-height: 100vh;
+  color: #1c2333;
+  font-size: 36rpx;
+  line-height: 1.7;
 }
 
 /* 状态栏 */
 .status-bar {
-  height: 88rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  height: 96rpx;
+  background: linear-gradient(135deg, #5b71ff 0%, #7a6bff 100%);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 36rpx;
+  padding: 0 48rpx;
   font-weight: 600;
+  font-size: 34rpx;
 }
 
 /* 英雄区 */
 .hero {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #5b71ff 0%, #8f6bff 100%);
   color: #fff;
-  padding: 36rpx;
+  padding: 52rpx 40rpx 60rpx;
+  border-bottom-left-radius: 40rpx;
+  border-bottom-right-radius: 40rpx;
+  box-shadow: 0 18rpx 40rpx rgba(91, 113, 255, .35);
 }
-.hero-title { 
-  font-size: 48rpx; 
-  font-weight: 700; 
-  margin-bottom: 12rpx; 
+.hero-title {
+  font-size: 58rpx;
+  font-weight: 700;
+  margin-bottom: 16rpx;
 }
-.hero-sub { 
-  opacity: .9; 
-  font-size: 30rpx; 
-  margin-bottom: 24rpx; 
-  display: block; 
+.hero-sub {
+  opacity: .95;
+  font-size: 34rpx;
+  margin-bottom: 32rpx;
+  display: block;
 }
 .search-bar {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 20rpx;
-  background: rgba(255,255,255,.2);
+  background: rgba(255,255,255,.25);
   border-radius: 999rpx;
-  padding: 20rpx 28rpx;
-  backdrop-filter: blur(8px);
+  padding: 26rpx 36rpx;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+.search-icon {
+  position: absolute;
+  left: 40rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 38rpx;
+  pointer-events: none;
 }
 .search-bar input {
   border: none; 
   outline: none; 
-  flex: 1; 
+  width: 100%; 
   background: transparent; 
   color: #fff; 
-  font-size: 32rpx;
+  font-size: 34rpx;
+  padding-left: 88rpx;
 }
 
 /* 分类导航 + 形式筛选（样式完全共用） */
@@ -384,101 +488,116 @@ function openDetail(item) {
   border-bottom: 2rpx solid #e9ecef;
   overflow-x: auto;
 }
-.cate-row { 
-  display: flex; 
-  gap: 20rpx; 
-  padding: 28rpx 24rpx; 
+.categories.shake {
+  animation: shakeX .45s ease;
+}
+.cate-row {
+  display: flex;
+  gap: 28rpx;
+  padding: 32rpx 32rpx;
 }
 .cate {
-  flex: 0 0 auto; 
-  min-width: 176rpx; 
+  flex: 0 0 auto;
+  min-width: 210rpx;
   text-align: center;
-  background: #f5f6f8; 
-  color: #5c6670; 
+  background: #f5f6f8;
+  color: #5c6673;
   border: 2rpx solid #e9ecef;
-  border-radius: 999rpx; 
-  padding: 20rpx 28rpx; 
-  font-size: 30rpx; 
-  cursor: pointer; 
+  border-radius: 999rpx;
+  padding: 24rpx 36rpx;
+  font-size: 32rpx;
+  cursor: pointer;
   user-select: none;
   transition: .2s all;
 }
 .cate:active { transform: scale(.95); }
 .cate.active { 
   color: #fff; 
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+  background: linear-gradient(135deg, #5b71ff 0%, #8f6bff 100%);
   border-color: transparent; 
 }
 
 /* 区块与卡片 */
-.section { 
-  padding: 32rpx 28rpx; 
+.section {
+  padding: 40rpx 34rpx;
+}
+.result-hint {
+  margin: 12rpx 34rpx 0;
+  padding: 24rpx 32rpx;
+  border-radius: 32rpx;
+  background: rgba(91, 113, 255, 0.12);
+  color: #5b71ff;
+  font-size: 32rpx;
+  line-height: 1.5;
+}
+.result-hint.alert {
+  background: rgba(255, 107, 107, 0.18);
+  color: #c0392b;
 }
 .sec-head { 
   display: flex; 
   align-items: center; 
   justify-content: space-between; 
-  margin-bottom: 24rpx; 
+  margin-bottom: 28rpx;
 }
-.sec-title { 
-  font-size: 36rpx; 
-  font-weight: 700; 
+.sec-title {
+  font-size: 44rpx;
+  font-weight: 700;
 }
-.more { 
-  color: #667eea; 
-  font-size: 28rpx; 
-  text-decoration: none; 
+.more {
+  color: #5b71ff;
+  font-size: 32rpx;
+  text-decoration: none;
 }
 
-.featured { 
-  display: flex; 
-  flex-direction: column; 
-  gap: 24rpx; 
+.featured {
+  display: flex;
+  flex-direction: column;
+  gap: 26rpx;
 }
 .feat-card {
-  display: flex; 
-  gap: 24rpx; 
-  background: #fff; 
-  border: 2rpx solid #f0f1f3; 
-  border-radius: 28rpx; 
-  padding: 24rpx;
-  box-shadow: 0 4rpx 20rpx rgba(0,0,0,.06);
+  display: flex;
+  gap: 28rpx;
+  background: #fff;
+  border: 2rpx solid #f0f1f3;
+  border-radius: 32rpx;
+  padding: 32rpx;
+  box-shadow: 0 12rpx 32rpx rgba(92, 109, 143, .08);
 }
 .feat-img { 
-  width: 168rpx; 
-  height: 168rpx; 
-  border-radius: 20rpx; 
-  background: linear-gradient(45deg, #667eea, #764ba2); 
+  width: 180rpx;
+  height: 180rpx;
+  border-radius: 28rpx;
+  background: linear-gradient(135deg, #5b71ff, #8f6bff);
   flex-shrink: 0; 
 }
-.feat-body { flex: 1; }
+.feat-body { flex: 1; display: flex; flex-direction: column; gap: 12rpx; }
 .feat-title { 
-  font-weight: 700; 
-  margin-bottom: 12rpx; 
-  font-size: 32rpx; 
+  font-weight: 700;
+  font-size: 38rpx;
 }
 .meta { 
-  display: flex; 
-  gap: 20rpx; 
-  color: #7b8794; 
-  font-size: 26rpx; 
-  margin-bottom: 12rpx; 
+  display: flex;
+  gap: 24rpx;
+  color: #5c6673;
+  font-size: 30rpx;
 }
 .price { 
-  color: #ff6b6b; 
-  font-weight: 800; 
+  color: #ff6b6b;
+  font-weight: 800;
+  font-size: 34rpx;
 }
 
-.grid { 
-  display: grid; 
-  gap: 24rpx; 
+.grid {
+  display: grid;
+  gap: 28rpx;
 }
 .card {
-  background: #fff; 
-  border: 2rpx solid #f0f1f3; 
-  border-radius: 40rpx; 
-  overflow: hidden; 
-  box-shadow: 0 4rpx 20rpx rgba(0,0,0,.12);
+  background: #fff;
+  border: 2rpx solid #f0f1f3;
+  border-radius: 40rpx;
+  overflow: hidden;
+  box-shadow: 0 12rpx 32rpx rgba(92, 109, 143, .08);
   transition: transform .2s, box-shadow .2s; 
   cursor: pointer;
 }
@@ -486,15 +605,15 @@ function openDetail(item) {
   transform: scale(.98); 
   box-shadow: 0 2rpx 16rpx rgba(0,0,0,.08); 
 }
-.thumb { 
-  height: 260rpx; 
-  background: linear-gradient(45deg, #667eea, #764ba2); 
+.thumb {
+  height: 280rpx;
+  background: linear-gradient(135deg, #5b71ff, #8f6bff);
   position: relative; 
   display: flex; 
   align-items: center; 
   justify-content: center; 
   color: #fff; 
-  font-size: 84rpx; 
+  font-size: 90rpx;
 }
 .badge { 
   position: absolute; 
@@ -518,34 +637,34 @@ function openDetail(item) {
   font-size: 24rpx; 
   font-weight: 700; 
 }
-.body { 
-  padding: 28rpx; 
+.body {
+  padding: 32rpx;
 }
-.title { 
-  font-size: 32rpx; 
-  font-weight: 700; 
-  margin-bottom: 12rpx; 
-  color: #1d2129; 
+.title {
+  font-size: 38rpx;
+  font-weight: 700;
+  margin-bottom: 16rpx;
+  color: #1c2333;
 }
-.desc { 
-  font-size: 28rpx; 
-  color: #5f6b78; 
-  margin-bottom: 16rpx; 
-  line-height: 1.5; 
+.desc {
+  font-size: 32rpx;
+  color: #5c6673;
+  margin-bottom: 20rpx;
+  line-height: 1.6;
 }
-.info { 
-  display: flex; 
-  align-items: center; 
-  justify-content: space-between; 
-  color: #7b8794; 
-  font-size: 26rpx; 
-  margin-bottom: 16rpx; /* 增加间距，避免标签拥挤 */
+.info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #5c6673;
+  font-size: 30rpx;
+  margin-bottom: 18rpx;
 }
 .difficulty { 
-  padding: 4rpx 16rpx; 
-  border-radius: 16rpx; 
-  font-size: 24rpx; 
-  background: #f0f2f5; 
+  padding: 8rpx 20rpx;
+  border-radius: 20rpx;
+  font-size: 30rpx;
+  background: #f0f2f5;
 }
 .diff-easy { 
   background: #e8f5e8; 
@@ -560,16 +679,16 @@ function openDetail(item) {
 .course-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 16rpx;
-  margin-top: 16rpx;
+  gap: 18rpx;
+  margin-top: 18rpx;
 }
 .course-tag {
-  padding: 12rpx 24rpx;
+  padding: 14rpx 28rpx;
   border-radius: 999rpx;
-  font-size: 28rpx; /* 大字体，便于老年用户阅读 */
-  font-weight: 600; /* 加粗，提高辨识度 */
+  font-size: 30rpx;
+  font-weight: 600;
   color: #fff;
-  background: #667eea;
+  background: #5b71ff;
   display: inline-flex;
   align-items: center;
   gap: 8rpx;
@@ -593,27 +712,27 @@ function openDetail(item) {
   border-radius: 999rpx;
   font-size: 28rpx;
   font-weight: 600;
-  color: #5c6670;
-  background: #f0f2f5;
+  color: #5c6673;
+  background: #edf1f5;
 }
 
 /* 课程内推广位 */
 .promo {
-  background: linear-gradient(135deg, #667eea12 0%, #764ba212 100%);
-  border-left: 8rpx solid #667eea;
-  border-radius: 24rpx;
-  padding: 24rpx;
-  margin: 12rpx 4rpx;
+  background: linear-gradient(135deg, #5b71ff12 0%, #8f6bff12 100%);
+  border-left: 8rpx solid #5b71ff;
+  border-radius: 28rpx;
+  padding: 28rpx;
+  margin: 16rpx 4rpx;
 }
-.promo-title { 
-  color: #667eea; 
-  font-size: 32rpx; 
-  margin-bottom: 12rpx; 
-  display: block; 
+.promo-title {
+  color: #5b71ff;
+  font-size: 36rpx;
+  margin-bottom: 12rpx;
+  display: block;
 }
-.promo-desc { 
-  font-size: 28rpx; 
-  color: #5c6670; 
+.promo-desc {
+  font-size: 32rpx;
+  color: #5c6673;
 }
 
 /* 动效 */
@@ -623,6 +742,14 @@ function openDetail(item) {
 }
 .animate { 
   animation: fadeUp .5s ease-out; 
+}
+
+@keyframes shakeX {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-12rpx); }
+  50% { transform: translateX(12rpx); }
+  75% { transform: translateX(-8rpx); }
+  100% { transform: translateX(0); }
 }
 
 .spacer { 

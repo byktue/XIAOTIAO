@@ -50,6 +50,56 @@
 				"enablePullDownRefresh": false
 			}
 		}
+		,
+		{
+			"path": "pages/profile/edit",
+			"style": {
+				"navigationBarTitleText": "编辑个人信息",
+				"navigationStyle": "default"
+			}
+		},
+		{
+			"path": "pages/profile/progress",
+			"style": {
+				"navigationBarTitleText": "学习进度",
+				"navigationStyle": "default"
+			}
+		},
+		{
+			"path": "pages/profile/orders",
+			"style": {
+				"navigationBarTitleText": "我的订单",
+				"navigationStyle": "default"
+			}
+		},
+		{
+			"path": "pages/profile/favorites",
+			"style": {
+				"navigationBarTitleText": "收藏夹",
+				"navigationStyle": "default"
+			}
+		},
+		{
+			"path": "pages/profile/records",
+			"style": {
+				"navigationBarTitleText": "学习记录",
+				"navigationStyle": "default"
+			}
+		},
+		{
+			"path": "pages/profile/posts",
+			"style": {
+				"navigationBarTitleText": "我的发布",
+				"navigationStyle": "default"
+			}
+		},
+		{
+			"path": "pages/profile/support",
+			"style": {
+				"navigationBarTitleText": "客服中心",
+				"navigationStyle": "default"
+			}
+		}
 	],
 	"tabBar": {
 		"color": "#9aa4af",

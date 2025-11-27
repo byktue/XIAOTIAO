@@ -11,8 +11,16 @@
       <text class="hero-title">智能购物</text>
       <text class="hero-sub">精选适老产品，让生活更便利</text>
       <view class="search-bar">
-        <text>🔍</text>
-        <input :value="keyword" placeholder="搜索商品、品牌或功能" @input="onInput" />
+        <text class="search-icon">🔍</text>
+        <input
+          :value="keyword"
+          placeholder="搜索商品、品牌或功能"
+          aria-label="商店搜索输入框"
+          title="搜索商品、品牌或功能"
+          @input="onInput"
+          @focus="onSearchFocus"
+          @confirm="onSearchConfirm"
+        />
       </view>
     </view>
 
@@ -23,11 +31,15 @@
       </view>
     </scroll-view>
 
+    <view v-if="helperHint" class="result-hint" :class="{ alert: filterFeedback }">
+      <text>{{ helperHint }}</text>
+    </view>
+
     <!-- 推荐商品 -->
     <view class="section">
       <view class="sec-head">
         <text class="sec-title">推荐商品</text>
-        <text class="more">查看更多</text>
+        <text class="more" @tap="() => openMore('featured')">查看更多</text>
       </view>
       <view class="featured">
         <view v-for="item in filteredFeatured" :key="item.id" class="feat-card animate" @tap="() => openDetail(item)">
@@ -52,7 +64,7 @@
     <view class="section">
       <view class="sec-head">
         <text class="sec-title">热门商品</text>
-        <text class="more">查看全部</text>
+        <text class="more" @tap="() => openMore('hot')">查看全部</text>
       </view>
       <view class="grid">
         <view v-for="item in filteredProducts" :key="item.id" class="card animate" @tap="() => openDetail(item)">
@@ -90,7 +102,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
+import { speak, vibrateShort } from '../../services/voice.js'
 
 const categories = ref([
   { key: 'all', name: '全部' },
@@ -105,6 +118,9 @@ const categories = ref([
 const activeKey = ref('all')
 const keyword = ref('')
 const cart = ref([])
+const helperHint = ref('')
+const filterFeedback = ref(false)
+let hintTimer = null
 
 const featured = ref([
   { id: 'f1', title: '智能血压计（家属远程监控）', shop: '健康之家', rate: '4.9', sales: '2.1万', price: '299', tags: ['health'] },
@@ -180,12 +196,53 @@ function matchKw(item, kw) {
   return item.title.includes(kw) || (item.desc && item.desc.includes(kw)) || (item.shop && item.shop.includes(kw))
 }
 
+function setHelperHint(message, { alert = false, voice = false, duration = 2600 } = {}) {
+  helperHint.value = message
+  filterFeedback.value = alert
+  if (voice) {
+    speak(message)
+  }
+  if (hintTimer) {
+    clearTimeout(hintTimer)
+  }
+  hintTimer = setTimeout(() => {
+    helperHint.value = ''
+    filterFeedback.value = false
+  }, duration)
+}
+
+function getCategoryName(key) {
+  return categories.value.find(c => c.key === key)?.name || '全部'
+}
+
 function selectCate(k) {
+  if (activeKey.value === k) {
+    setHelperHint(`已处于${getCategoryName(k)}分类`, { voice: true })
+    vibrateShort({ style: 'light' })
+    return
+  }
   activeKey.value = k
+  setHelperHint(`已切换到${getCategoryName(k)}分类`, { voice: true })
+  vibrateShort({ style: 'light' })
 }
 
 function onInput(e) {
   keyword.value = e.detail.value
+}
+
+function onSearchFocus() {
+  setHelperHint('搜索框已激活，可输入商品、品牌或功能', { voice: true })
+}
+
+function onSearchConfirm() {
+  const kw = keyword.value.trim()
+  if (!kw) {
+    setHelperHint('请输入要搜索的关键词', { voice: true, alert: true })
+    vibrateShort({ style: 'heavy' })
+    return
+  }
+  setHelperHint(`正在搜索 ${kw}`, { voice: true })
+  vibrateShort({ style: 'light' })
 }
 
 function addToCart(item) {
@@ -195,72 +252,123 @@ function addToCart(item) {
   } else {
     cart.value.push({ ...item, count: 1 })
   }
+  const message = `${item.title} 已加入购物车`
+  setHelperHint(message, { voice: true })
+  vibrateShort({ style: 'heavy' })
   uni.showToast({ title: '已加入购物车', icon: 'success' })
 }
 
 function openDetail(item) {
+  const message = `查看商品 ${item.title}`
+  setHelperHint(message, { voice: true })
+  vibrateShort({ style: 'light' })
   uni.showToast({ title: `查看：${item.title}`, icon: 'none' })
 }
 
 function openCart() {
+  const message = `购物车共有 ${cartCount.value} 件商品`
+  setHelperHint(message, { voice: true })
+  vibrateShort({ style: 'light' })
   uni.showToast({ title: `购物车(${cartCount.value})`, icon: 'none' })
 }
+
+function openMore(section) {
+  const sectionName = section === 'hot' ? '热门商品' : '推荐商品'
+  setHelperHint(`即将展示更多${sectionName}`, { voice: true })
+  vibrateShort({ style: 'light' })
+  uni.showToast({ title: `${sectionName}加载中`, icon: 'none' })
+}
+
+watch([filteredFeatured, filteredProducts, activeKey, keyword], () => {
+  const hasFilter = activeKey.value !== 'all' || !!keyword.value.trim()
+  if (!hasFilter) {
+    return
+  }
+  const total = filteredFeatured.value.length + filteredProducts.value.length
+  if (total === 0) {
+    setHelperHint('没有找到相关商品，试试其他关键词或分类', { voice: true, alert: true, duration: 3200 })
+    vibrateShort({ style: 'heavy' })
+  } else {
+    setHelperHint(`为您筛选出 ${total} 件相关商品`, { voice: true })
+  }
+})
+
+onUnmounted(() => {
+  if (hintTimer) {
+    clearTimeout(hintTimer)
+  }
+})
 </script>
 
 <style scoped>
+
 .page {
-  background: #f8f9fa;
+  background: linear-gradient(180deg, #f7f9fc 0%, #edf1f7 100%);
   min-height: 100vh;
-  color: #1d2129;
+  color: #1c2333;
   font-size: 36rpx;
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
 /* 状态栏 */
 .status-bar {
-  height: 88rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  height: 96rpx;
+  background: linear-gradient(135deg, #5b71ff 0%, #7a6bff 100%);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 36rpx;
+  padding: 0 48rpx;
   font-weight: 600;
+  font-size: 34rpx;
 }
 
 /* 英雄区 */
 .hero {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #5b71ff 0%, #8f6bff 100%);
   color: #fff;
-  padding: 36rpx;
+  padding: 52rpx 40rpx 60rpx;
+  border-bottom-left-radius: 40rpx;
+  border-bottom-right-radius: 40rpx;
+  box-shadow: 0 18rpx 40rpx rgba(91, 113, 255, .35);
 }
 .hero-title {
-  font-size: 48rpx;
+  font-size: 58rpx;
   font-weight: 700;
-  margin-bottom: 12rpx;
+  margin-bottom: 16rpx;
 }
 .hero-sub {
-  opacity: .9;
-  font-size: 30rpx;
-  margin-bottom: 24rpx;
+  opacity: .95;
+  font-size: 34rpx;
+  margin-bottom: 32rpx;
   display: block;
 }
 .search-bar {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 20rpx;
-  background: rgba(255,255,255,.2);
+  background: rgba(255,255,255,.25);
   border-radius: 999rpx;
-  padding: 20rpx 28rpx;
-  backdrop-filter: blur(8px);
+  padding: 26rpx 36rpx;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+.search-icon {
+  position: absolute;
+  left: 40rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 38rpx;
+  pointer-events: none;
 }
 .search-bar input {
   border: none;
   outline: none;
-  flex: 1;
+  width: 100%;
   background: transparent;
   color: #fff;
-  font-size: 32rpx;
+  font-size: 34rpx;
+  padding-left: 88rpx;
 }
 
 /* 分类导航 */
@@ -271,19 +379,19 @@ function openCart() {
 }
 .cate-row {
   display: flex;
-  gap: 20rpx;
-  padding: 28rpx 24rpx;
+  gap: 28rpx;
+  padding: 32rpx 32rpx;
 }
 .cate {
   flex: 0 0 auto;
-  min-width: 176rpx;
+  min-width: 210rpx;
   text-align: center;
   background: #f5f6f8;
-  color: #5c6670;
+  color: #5c6673;
   border: 2rpx solid #e9ecef;
   border-radius: 999rpx;
-  padding: 20rpx 28rpx;
-  font-size: 30rpx;
+  padding: 24rpx 36rpx;
+  font-size: 32rpx;
   cursor: pointer;
   user-select: none;
   transition: .2s all;
@@ -291,81 +399,93 @@ function openCart() {
 .cate:active { transform: scale(.95); }
 .cate.active {
   color: #fff;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #5b71ff 0%, #8f6bff 100%);
   border-color: transparent;
+}
+.result-hint {
+  margin: 24rpx 34rpx 0;
+  padding: 22rpx 28rpx;
+  background: #f1f4ff;
+  border-radius: 24rpx;
+  color: #4450c2;
+  font-size: 32rpx;
+  box-shadow: 0 10rpx 28rpx rgba(92, 109, 143, .08);
+}
+.result-hint.alert {
+  background: #fff6f0;
+  color: #d35454;
+  border: 2rpx solid #fbc4a7;
 }
 
 /* 区块与卡片 */
 .section {
-  padding: 32rpx 28rpx;
+  padding: 40rpx 34rpx;
 }
 .sec-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24rpx;
+  margin-bottom: 28rpx;
 }
 .sec-title {
-  font-size: 36rpx;
+  font-size: 44rpx;
   font-weight: 700;
 }
 .more {
-  color: #667eea;
-  font-size: 28rpx;
+  color: #5b71ff;
+  font-size: 32rpx;
   text-decoration: none;
 }
 
 .featured {
   display: flex;
   flex-direction: column;
-  gap: 24rpx;
+  gap: 26rpx;
 }
 .feat-card {
   display: flex;
-  gap: 24rpx;
+  gap: 28rpx;
   background: #fff;
   border: 2rpx solid #f0f1f3;
-  border-radius: 28rpx;
-  padding: 24rpx;
-  box-shadow: 0 4rpx 20rpx rgba(0,0,0,.06);
+  border-radius: 32rpx;
+  padding: 32rpx;
+  box-shadow: 0 12rpx 32rpx rgba(92, 109, 143, .08);
   position: relative;
 }
 .feat-img {
-  width: 168rpx;
-  height: 168rpx;
-  border-radius: 20rpx;
-  background: linear-gradient(45deg, #667eea, #764ba2);
+  width: 180rpx;
+  height: 180rpx;
+  border-radius: 28rpx;
+  background: linear-gradient(135deg, #5b71ff, #8f6bff);
   flex-shrink: 0;
 }
-.feat-body { flex: 1; }
+.feat-body { flex: 1; display: flex; flex-direction: column; gap: 12rpx; }
 .feat-title {
   font-weight: 700;
-  margin-bottom: 12rpx;
-  font-size: 32rpx;
+  font-size: 38rpx;
 }
 .meta {
   display: flex;
-  gap: 20rpx;
-  color: #7b8794;
-  font-size: 26rpx;
-  margin-bottom: 12rpx;
+  gap: 24rpx;
+  color: #5c6673;
+  font-size: 30rpx;
 }
 .price {
   color: #ff6b6b;
   font-weight: 800;
-  font-size: 36rpx;
+  font-size: 40rpx;
 }
 
 .grid {
   display: grid;
-  gap: 24rpx;
+  gap: 28rpx;
 }
 .card {
   background: #fff;
   border: 2rpx solid #f0f1f3;
   border-radius: 40rpx;
   overflow: hidden;
-  box-shadow: 0 4rpx 20rpx rgba(0,0,0,.12);
+  box-shadow: 0 12rpx 32rpx rgba(92, 109, 143, .08);
   transition: transform .2s, box-shadow .2s;
   cursor: pointer;
 }
@@ -374,14 +494,14 @@ function openCart() {
   box-shadow: 0 2rpx 16rpx rgba(0,0,0,.08);
 }
 .thumb {
-  height: 260rpx;
-  background: linear-gradient(45deg, #667eea, #764ba2);
+  height: 280rpx;
+  background: linear-gradient(135deg, #5b71ff, #8f6bff);
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
-  font-size: 84rpx;
+  font-size: 90rpx;
 }
 .badge {
   position: absolute;
@@ -406,45 +526,45 @@ function openCart() {
   font-weight: 700;
 }
 .body {
-  padding: 28rpx;
+  padding: 32rpx;
 }
 .title {
-  font-size: 32rpx;
+  font-size: 38rpx;
   font-weight: 700;
-  margin-bottom: 12rpx;
-  color: #1d2129;
+  margin-bottom: 16rpx;
+  color: #1c2333;
 }
 .desc {
-  font-size: 28rpx;
-  color: #5f6b78;
-  margin-bottom: 16rpx;
-  line-height: 1.5;
+  font-size: 32rpx;
+  color: #5c6673;
+  margin-bottom: 20rpx;
+  line-height: 1.6;
 }
 .price-row {
   display: flex;
   align-items: center;
-  gap: 16rpx;
-  margin-bottom: 16rpx;
+  gap: 18rpx;
+  margin-bottom: 20rpx;
 }
 .original-price {
-  color: #999;
+  color: #9aa3b1;
   text-decoration: line-through;
-  font-size: 26rpx;
+  font-size: 30rpx;
 }
 .info {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: #7b8794;
-  font-size: 26rpx;
+  color: #5c6673;
+  font-size: 30rpx;
 }
 
 .cart-btn {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #5b71ff, #8f6bff);
   color: #fff;
-  padding: 12rpx 24rpx;
+  padding: 16rpx 32rpx;
   border-radius: 999rpx;
-  font-size: 26rpx;
+  font-size: 30rpx;
   font-weight: 600;
   text-align: center;
   min-width: 120rpx;
@@ -469,19 +589,19 @@ function openCart() {
   position: fixed;
   bottom: 120rpx;
   right: 40rpx;
-  width: 120rpx;
-  height: 120rpx;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  width: 140rpx;
+  height: 140rpx;
+  background: linear-gradient(135deg, #5b71ff, #8f6bff);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8rpx 24rpx rgba(102, 126, 234, 0.4);
+  box-shadow: 0 12rpx 32rpx rgba(91, 113, 255, 0.4);
   z-index: 100;
 }
 .cart-icon {
   color: #fff;
-  font-size: 48rpx;
+  font-size: 56rpx;
 }
 .cart-count {
   position: absolute;
@@ -489,13 +609,13 @@ function openCart() {
   right: -8rpx;
   background: #ff6b6b;
   color: #fff;
-  width: 48rpx;
-  height: 48rpx;
+  width: 52rpx;
+  height: 52rpx;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24rpx;
+  font-size: 28rpx;
   font-weight: 700;
 }
 

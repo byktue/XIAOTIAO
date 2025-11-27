@@ -21,6 +21,12 @@
             padding: 20px;
         }
 
+        input, textarea, button, select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+
         .phone-container {
             width: 375px;
             height: 812px;
@@ -406,7 +412,7 @@
                     </div>
                     <div class="search-bar">
                         <span>🔍</span>
-                        <input type="text" placeholder="搜索...">
+                        <input type="text" placeholder="搜索..." title="搜索内容">
                     </div>
                     <div class="category-section">
                         <div class="section-title">分类</div>

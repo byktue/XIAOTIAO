@@ -80,6 +80,37 @@
       </view>
     </view>
 
+    <!-- 无障碍助手 -->
+    <view class="section">
+      <view class="sec-head accessible-head">
+        <view>
+          <text class="sec-title">无障碍助手</text>
+          <text class="sec-sub">语音播报与触觉反馈</text>
+        </view>
+        <view v-if="accessibilityHint" class="accessibility-hint">
+          <text>{{ accessibilityHint }}</text>
+        </view>
+      </view>
+      <view class="accessibility-grid">
+        <view class="accessibility-card" :class="{ active: voiceEnabled }" @tap="() => toggleAccessibility('voice')">
+          <view class="card-icon">🔊</view>
+          <view class="card-content">
+            <text class="card-title">语音播报</text>
+            <text class="card-desc">{{ voiceEnabled ? '学习与操作实时语音提示' : '轻点开启语音提示' }}</text>
+          </view>
+          <view class="card-status">{{ voiceEnabled ? '已开启' : '已关闭' }}</view>
+        </view>
+        <view class="accessibility-card" :class="{ active: hapticEnabled }" @tap="() => toggleAccessibility('haptic')">
+          <view class="card-icon">🤲</view>
+          <view class="card-content">
+            <text class="card-title">触觉反馈</text>
+            <text class="card-desc">{{ hapticEnabled ? '页面操作同步轻震提示' : '轻点开启触感提示' }}</text>
+          </view>
+          <view class="card-status">{{ hapticEnabled ? '已开启' : '已关闭' }}</view>
+        </view>
+      </view>
+    </view>
+
     <!-- 设置选项 -->
     <view class="section">
       <view class="sec-head">
@@ -112,7 +143,16 @@
 
 <script setup>
 import { computed, onUnmounted, ref } from 'vue'
-import { getVoicePreference, onVoicePreferenceChange, speak, toggleVoicePreference } from '../../services/voice.js'
+import {
+  getHapticPreference,
+  getVoicePreference,
+  onHapticPreferenceChange,
+  onVoicePreferenceChange,
+  speak,
+  toggleHapticPreference,
+  toggleVoicePreference,
+  vibrateShort
+} from '../../services/voice.js'
 
 const userInfo = ref({
   name: '张大爷',
@@ -156,42 +196,65 @@ const menuList = ref([
     title: '我的订单',
     desc: '查看购买记录',
     icon: '📦',
-    iconStyle: 'background: linear-gradient(45deg, #667eea, #764ba2)'
+    iconStyle: 'background: linear-gradient(45deg, #667eea, #764ba2)',
+    route: '/pages/profile/orders'
   },
   {
     id: 'm2',
     title: '收藏夹',
     desc: '我收藏的内容',
     icon: '⭐',
-    iconStyle: 'background: linear-gradient(45deg, #ffa726, #ff9800)'
+    iconStyle: 'background: linear-gradient(45deg, #ffa726, #ff9800)',
+    route: '/pages/profile/favorites'
   },
   {
     id: 'm3',
     title: '学习记录',
     desc: '查看学习历史',
     icon: '📚',
-    iconStyle: 'background: linear-gradient(45deg, #4ecdc4, #44a08d)'
+    iconStyle: 'background: linear-gradient(45deg, #4ecdc4, #44a08d)',
+    route: '/pages/profile/records'
   },
   {
     id: 'm4',
     title: '我的发布',
     desc: '管理发布内容',
     icon: '✍️',
-    iconStyle: 'background: linear-gradient(45deg, #ff6b6b, #e91e63)'
+    iconStyle: 'background: linear-gradient(45deg, #ff6b6b, #e91e63)',
+    route: '/pages/profile/posts'
   },
   {
     id: 'm5',
     title: '客服帮助',
     desc: '联系客服支持',
     icon: '🎧',
-    iconStyle: 'background: linear-gradient(45deg, #9c27b0, #673ab7)'
+    iconStyle: 'background: linear-gradient(45deg, #9c27b0, #673ab7)',
+    route: '/pages/profile/support'
   }
 ])
 
 const voiceEnabled = ref(getVoicePreference())
+const hapticEnabled = ref(getHapticPreference())
+const accessibilityHint = ref('')
+let accessibilityTimer = null
+
 const stopVoiceListener = onVoicePreferenceChange((enabled) => {
   voiceEnabled.value = enabled
 })
+
+const stopHapticListener = onHapticPreferenceChange((enabled) => {
+  hapticEnabled.value = enabled
+})
+
+function setAccessibilityHint(message) {
+  accessibilityHint.value = message
+  if (accessibilityTimer) {
+    clearTimeout(accessibilityTimer)
+  }
+  accessibilityTimer = setTimeout(() => {
+    accessibilityHint.value = ''
+  }, 2600)
+}
 
 const settingList = computed(() => [
   {
@@ -199,12 +262,6 @@ const settingList = computed(() => [
     title: '字体大小',
     icon: '🔤',
     value: '大'
-  },
-  {
-    id: 'voice-broadcast',
-    title: '语音播报',
-    icon: '🔊',
-    value: voiceEnabled.value ? '开启' : '关闭'
   },
   {
     id: 'dark-mode',
@@ -231,11 +288,11 @@ const settingList = computed(() => [
 ])
 
 function editProfile() {
-  uni.showToast({ title: '编辑个人信息', icon: 'none' })
+  uni.navigateTo({ url: '/pages/profile/edit' })
 }
 
 function viewAllCourses() {
-  uni.switchTab({ url: '/pages/course/index' })
+  uni.navigateTo({ url: '/pages/profile/progress' })
 }
 
 function continueCourse(course) {
@@ -243,18 +300,51 @@ function continueCourse(course) {
 }
 
 function openMenu(menu) {
+  if (menu.route) {
+    uni.navigateTo({ url: menu.route })
+    return
+  }
   uni.showToast({ title: `打开：${menu.title}`, icon: 'none' })
 }
 
 function openSetting(setting) {
-  if (setting.id === 'voice-broadcast') {
+  uni.showToast({ title: `设置：${setting.title}`, icon: 'none' })
+}
+
+function toggleAccessibility(feature) {
+  if (feature === 'voice') {
+    const willEnable = !voiceEnabled.value
+    const message = `语音播报已${willEnable ? '开启' : '关闭'}`
+    if (!willEnable) {
+      speak(message)
+    }
     const nextState = toggleVoicePreference()
     voiceEnabled.value = nextState
-    speak(`语音播报已${nextState ? '开启' : '关闭'}`)
-    uni.showToast({ title: `语音播报${nextState ? '已开启' : '已关闭'}`, icon: 'none' })
+    setAccessibilityHint(message)
+    if (nextState) {
+      speak(message)
+    }
+    uni.showToast({ title: message, icon: 'none' })
+    vibrateShort({ style: 'light' })
     return
   }
-  uni.showToast({ title: `设置：${setting.title}`, icon: 'none' })
+
+  if (feature === 'haptic') {
+    if (hapticEnabled.value) {
+      vibrateShort({ style: 'heavy' })
+    }
+    const nextState = toggleHapticPreference()
+    hapticEnabled.value = nextState
+    const message = `触觉反馈已${nextState ? '开启' : '关闭'}`
+    setAccessibilityHint(message)
+    if (voiceEnabled.value) {
+      speak(message)
+    }
+    uni.showToast({ title: message, icon: 'none' })
+    if (nextState) {
+      vibrateShort({ style: 'light' })
+    }
+  }
 }
 
 function logout() {
@@ -273,6 +363,10 @@ function logout() {
 
 onUnmounted(() => {
   stopVoiceListener?.()
+  stopHapticListener?.()
+  if (accessibilityTimer) {
+    clearTimeout(accessibilityTimer)
+  }
 })
 </script>
 
@@ -318,6 +412,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   font-size: 48rpx;
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
 }
 .user-info {
@@ -340,6 +435,7 @@ onUnmounted(() => {
   padding: 16rpx 32rpx;
   border-radius: 999rpx;
   font-size: 28rpx;
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
 }
 
@@ -349,6 +445,7 @@ onUnmounted(() => {
   background: rgba(255,255,255,.1);
   border-radius: 24rpx;
   padding: 32rpx 16rpx;
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
 }
 .stat-item {
@@ -379,6 +476,72 @@ onUnmounted(() => {
 .sec-title {
   font-size: 36rpx;
   font-weight: 700;
+}
+.sec-sub {
+  display: block;
+  font-size: 26rpx;
+  color: #6d7391;
+  margin-top: 6rpx;
+}
+.accessible-head {
+  align-items: flex-start;
+}
+.accessibility-hint {
+  background: rgba(102, 126, 234, 0.12);
+  color: #4c5bd4;
+  padding: 8rpx 18rpx;
+  border-radius: 999rpx;
+  font-size: 26rpx;
+}
+.accessibility-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+.accessibility-card {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  background: #fff;
+  padding: 28rpx;
+  border-radius: 28rpx;
+  border: 2rpx solid transparent;
+  transition: all 0.2s ease;
+}
+.accessibility-card.active {
+  border-color: #737dff;
+  box-shadow: 0 10rpx 36rpx rgba(115, 125, 255, 0.2);
+}
+.card-icon {
+  width: 84rpx;
+  height: 84rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(135deg, #6f8bff, #8ab2ff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 44rpx;
+  color: #fff;
+}
+.accessibility-card.active .card-icon {
+  background: linear-gradient(135deg, #5b71ff, #7a6bff);
+}
+.card-content {
+  flex: 1;
+}
+.card-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  display: block;
+}
+.card-desc {
+  font-size: 26rpx;
+  color: #6d7391;
+}
+.card-status {
+  font-size: 28rpx;
+  color: #5b71ff;
+  font-weight: 600;
 }
 .more {
   color: #667eea;

@@ -11,17 +11,29 @@
       <text class="hero-title">社区交流</text>
       <text class="hero-sub">分享经验，互助交流，共同成长</text>
       <view class="search-bar">
-        <text>🔍</text>
-        <input :value="keyword" placeholder="搜索话题、内容或用户" @input="onInput" />
+        <text class="search-icon">🔍</text>
+        <input
+          :value="keyword"
+          placeholder="搜索话题、内容或用户"
+          aria-label="社区搜索输入框"
+          title="搜索话题、内容或用户"
+          @focus="onSearchFocus"
+          @input="onInput"
+          @confirm="onSearchConfirm"
+        />
       </view>
     </view>
 
     <!-- 分类导航 -->
-    <scroll-view class="categories" scroll-x :show-scrollbar="false">
+    <scroll-view class="categories" :class="{ shake: filterFeedback }" scroll-x :show-scrollbar="false">
       <view class="cate-row">
         <view v-for="c in categories" :key="c.key" class="cate" :class="{active: c.key===activeKey}" @tap="() => selectCate(c.key)">{{ c.name }}</view>
       </view>
     </scroll-view>
+
+    <view v-if="resultHint" class="result-hint" :class="{ alert: filterFeedback }">
+      <text>{{ resultHint }}</text>
+    </view>
 
     <!-- 热门话题 -->
     <view class="section">
@@ -167,6 +179,8 @@
                 :value="replyInput" 
                 @input="(e) => replyInput = e.detail.value" 
                 placeholder="输入回复内容..." 
+                aria-label="回复输入框" 
+                title="输入回复内容" 
               />
               <view class="reply-btn-group">
                 <view class="cancel-btn" @tap.stop="cancelReply">取消</view>
@@ -182,6 +196,8 @@
             :value="commentInput" 
             @input="(e) => commentInput = e.detail.value" 
             placeholder="发表你的看法..." 
+            aria-label="评论输入框" 
+            title="发表你的看法" 
           />
           <view class="send-btn" @tap.stop="sendComment">发送</view>
         </view>
@@ -228,11 +244,15 @@
             v-model="topicForm.title" 
             class="topic-title-input" 
             placeholder="请输入话题标题（必填）" 
+            aria-label="话题标题输入框"
+            title="请输入话题标题"
           />
           <textarea 
             v-model="topicForm.content" 
             class="topic-content-input" 
             placeholder="请输入话题描述（可选）" 
+            aria-label="话题描述输入框"
+            title="请输入话题描述"
           />
           <view class="topic-tag-select">
             <text class="label">选择标签：</text>
@@ -250,6 +270,8 @@
             v-model="postForm.content" 
             class="post-content-input" 
             placeholder="请分享你的经验、心得或问题（必填）" 
+            aria-label="经验分享输入框"
+            title="请分享你的经验、心得或问题"
           />
           <view class="post-tag-select">
             <text class="label">选择标签：</text>
@@ -273,7 +295,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { speak, vibrateShort } from '../../services/voice.js'
 
 const categories = ref([
   { key: 'all', name: '全部' },
@@ -287,6 +310,10 @@ const categories = ref([
 
 const activeKey = ref('all')
 const keyword = ref('')
+const resultHint = ref('')
+const filterFeedback = ref(false)
+let hintTimer = null
+let announceTimer = null
 
 // 评论相关响应式数据（原有）
 const showCommentModal = ref(false)
@@ -454,6 +481,49 @@ const filteredPosts = computed(() => {
   return posts.value.filter(i => (k==='all' || i.tags.includes(k)) && (kw==='' || matchKw(i, kw)))
 })
 
+function getCategoryName(key) {
+  return categories.value.find(c => c.key === key)?.name || '全部'
+}
+
+function showHint(message, { warning = false, voice = false, persist = 3800 } = {}) {
+  resultHint.value = message
+  if (voice) {
+    speak(message)
+  }
+  if (warning) {
+    filterFeedback.value = true
+    vibrateShort({ style: 'heavy' })
+    setTimeout(() => {
+      filterFeedback.value = false
+    }, 600)
+  } else {
+    filterFeedback.value = false
+  }
+  if (hintTimer) clearTimeout(hintTimer)
+  hintTimer = setTimeout(() => {
+    resultHint.value = ''
+    filterFeedback.value = false
+  }, persist)
+}
+
+watch([() => filteredTopics.value.length, () => filteredPosts.value.length, activeKey, keyword], () => {
+  if (announceTimer) clearTimeout(announceTimer)
+  announceTimer = setTimeout(() => {
+    const hasFilter = activeKey.value !== 'all' || !!keyword.value.trim()
+    if (!hasFilter) {
+      resultHint.value = ''
+      filterFeedback.value = false
+      return
+    }
+    const total = filteredTopics.value.length + filteredPosts.value.length
+    if (total === 0) {
+      showHint('没有找到相关内容，试试换个关键词或分类', { warning: true, voice: true })
+    } else {
+      showHint(`为您找到 ${total} 条相关内容`, { voice: true })
+    }
+  }, 320)
+})
+
 // 匹配关键词（原有）
 function matchKw(item, kw) {
   return item.title?.includes(kw) || item.content?.includes(kw) || item.username?.includes(kw)
@@ -461,18 +531,37 @@ function matchKw(item, kw) {
 
 // 原有功能函数（保持不变）
 function selectCate(k) {
+  if (activeKey.value === k) {
+    speak(`已处于${getCategoryName(k)}分类`)
+    return
+  }
   activeKey.value = k
+  speak(`已切换到${getCategoryName(k)}分类`)
 }
 
 function onInput(e) {
   keyword.value = e.detail.value
 }
 
+function onSearchFocus() {
+  speak('社区搜索框已激活，可输入话题或用户名称')
+}
+
+function onSearchConfirm() {
+  if (!keyword.value.trim()) {
+    showHint('请输入要搜索的内容', { warning: true, voice: true })
+    return
+  }
+  speak(`正在搜索 ${keyword.value.trim()}，请稍候`)
+}
+
 function openTopic(topic) {
+  speak(`进入话题 ${topic.title}`)
   uni.showToast({ title: `进入话题：${topic.title}`, icon: 'none' })
 }
 
 function openPost(post) {
+  speak(`查看 ${post.username} 的分享`)
   uni.showToast({ title: `查看帖子：${post.username}的分享`, icon: 'none' })
 }
 
@@ -480,11 +569,13 @@ function toggleLike(post) {
   post.isLiked = !post.isLiked
   post.likes += post.isLiked ? 1 : -1
   uni.showToast({ title: post.isLiked ? '已点赞' : '取消点赞', icon: 'success' })
+  speak(post.isLiked ? '已点赞该帖子' : '已取消点赞')
 }
 
 function toggleFollow(post) {
   post.isFollowed = !post.isFollowed
   uni.showToast({ title: post.isFollowed ? '已关注' : '取消关注', icon: 'success' })
+  speak(post.isFollowed ? `已关注 ${post.username}` : `已取消关注 ${post.username}`)
 }
 
 function openComments(post) {
@@ -494,6 +585,7 @@ function openComments(post) {
   replyInput.value = ''
   replyToComment.value = null
   replyToReply.value = null
+  speak(`已打开 ${post.username} 的评论区，向下滑动即可阅读内容`)
 }
 
 function closeCommentModal() {
@@ -501,18 +593,21 @@ function closeCommentModal() {
   setTimeout(() => {
     currentPost.value = null
   }, 300)
+  speak('已关闭评论窗口')
 }
 
 function toggleCommentLike(comment) {
   comment.isLiked = !comment.isLiked
   comment.likes += comment.isLiked ? 1 : -1
   uni.showToast({ title: comment.isLiked ? '已点赞' : '取消点赞', icon: 'success' })
+  speak(comment.isLiked ? '已为该评论点赞' : '已取消评论点赞')
 }
 
 function openReply(comment, reply = null) {
   replyToComment.value = comment
   replyToReply.value = reply
   replyInput.value = ''
+  speak(reply ? `正在回复 ${reply.username}` : `正在回复 ${comment.username}`)
   setTimeout(() => {
     const commentEl = uni.createSelectorQuery().in(this).select(`.comment-item-${comment.id}`)
     commentEl.boundingClientRect(rect => {
@@ -532,11 +627,13 @@ function cancelReply() {
   replyInput.value = ''
   replyToComment.value = null
   replyToReply.value = null
+  speak('已取消回复')
 }
 
 function sendComment() {
   if (!commentInput.value.trim()) {
     uni.showToast({ title: '请输入评论内容', icon: 'none' })
+    showHint('请输入评论内容', { warning: true, voice: true })
     return
   }
   const newComment = {
@@ -553,11 +650,13 @@ function sendComment() {
   currentPost.value.comments += 1
   commentInput.value = ''
   uni.showToast({ title: '评论成功', icon: 'success' })
+  speak('评论已发送')
 }
 
 function sendReply(comment) {
   if (!replyInput.value.trim()) {
     uni.showToast({ title: '请输入回复内容', icon: 'none' })
+    showHint('请输入回复内容', { warning: true, voice: true })
     return
   }
   const newReply = {
@@ -576,25 +675,30 @@ function sendReply(comment) {
   currentPost.value.comments += 1
   cancelReply()
   uni.showToast({ title: '回复成功', icon: 'success' })
+  speak('回复已发送')
 }
 
 function sharePost(post) {
   uni.showToast({ title: '分享成功', icon: 'success' })
+  speak('内容已分享给好友')
 }
 
 // 新增：发帖功能相关函数
 function openPublish() {
   showPublishModal.value = true
+  speak('已打开发帖类型选择，请选择话题或经验分享')
 }
 
 function closePublishModal() {
   showPublishModal.value = false
+  speak('已关闭发帖选择')
 }
 
 // 选择发帖类型
 function selectPostType(type) {
   postType.value = type
   showPublishModal.value = false
+  speak(type === 'topic' ? '准备发起新话题' : '准备分享新经验')
   // 重置表单
   if (type === 'topic') {
     topicForm.value = { title: '', content: '', tag: 'digital' }
@@ -613,16 +717,18 @@ function goBackToSelect() {
   setTimeout(() => {
     showPublishModal.value = true
   }, 300)
+  speak('已返回发帖类型选择')
 }
 
 // 关闭输入界面
 function closePostInput() {
   showPostInput.value = false
+  speak('已关闭发帖编辑')
 }
 
 // 提交发帖
 function submitPost() {
-  if (postType === 'topic') {
+  if (postType.value === 'topic') {
     // 验证话题表单
     if (!topicForm.value.title.trim()) {
       uni.showToast({ title: '请输入话题标题', icon: 'none' })
@@ -668,6 +774,7 @@ function submitPost() {
   // 显示成功提示
   showPostInput.value = false
   showSuccessToast.value = true
+  speak('内容已成功发布，稍后即可在列表中查看')
   // 3秒后隐藏提示
   setTimeout(() => {
     showSuccessToast.value = false
@@ -718,21 +825,31 @@ function submitPost() {
   display: block;
 }
 .search-bar {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 20rpx;
   background: rgba(255,255,255,.25);
   border-radius: 999rpx;
   padding: 28rpx 36rpx;
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
+}
+.search-icon {
+  position: absolute;
+  left: 40rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 38rpx;
+  pointer-events: none;
 }
 .search-bar input {
   border: none;
   outline: none;
-  flex: 1;
+  width: 100%;
   background: transparent;
   color: #fff;
   font-size: 34rpx;
+  padding-left: 88rpx;
 }
 
 /* 分类导航（原有） */
@@ -740,6 +857,9 @@ function submitPost() {
   background: #fff;
   border-bottom: 2rpx solid #e9ecef;
   overflow-x: auto;
+}
+.categories.shake {
+  animation: filterShake .35s ease;
 }
 .cate-row {
   display: flex;
@@ -765,6 +885,25 @@ function submitPost() {
   color: #fff;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-color: transparent;
+}
+
+.result-hint {
+  margin: 20rpx 34rpx 0;
+  background: #eef2ff;
+  color: #4c51bf;
+  border-radius: 20rpx;
+  padding: 20rpx 28rpx;
+  font-size: 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 72rpx;
+  text-align: center;
+}
+.result-hint.alert {
+  background: #fff5f5;
+  color: #c53030;
+  border: 2rpx solid #fed7d7;
 }
 
 /* 区块与卡片（原有） */
@@ -951,6 +1090,16 @@ function submitPost() {
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(32rpx) }
   to { opacity: 1; transform: translateY(0) }
+}
+.result-hint.alert,
+.categories.shake {
+  will-change: transform;
+}
+@keyframes filterShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-10rpx); }
+  50% { transform: translateX(12rpx); }
+  75% { transform: translateX(-6rpx); }
 }
 .animate {
   animation: fadeUp .5s ease-out;

@@ -25,7 +25,16 @@
             <text class="stat-label">活跃用户</text>
           </view>
         </view>
+        <view class="hero-assist">
+          <view class="assist-pill" @tap="() => readHeroSummary(false)">
+            <text>🔊 听一听今日亮点</text>
+          </view>
+        </view>
       </view>
+    </view>
+
+    <view v-if="helperHint" class="assist-hint">
+      <text>{{ helperHint }}</text>
     </view>
 
     <!-- 快捷入口 -->
@@ -57,7 +66,7 @@
     <view class="section">
       <view class="sec-head">
         <text class="sec-title">今日推荐</text>
-        <text class="more">查看更多</text>
+        <text class="more" @tap="() => openMore('recommend')">查看更多</text>
       </view>
       <view class="recommend-list">
         <view v-for="item in recommendations" :key="item.id" class="recommend-card animate" @tap="() => openRecommend(item)">
@@ -80,7 +89,7 @@
     <view class="section">
       <view class="sec-head">
         <text class="sec-title">最新动态</text>
-        <text class="more">查看全部</text>
+        <text class="more" @tap="() => openMore('news')">查看全部</text>
       </view>
       <view class="news-list">
         <view v-for="news in newsList" :key="news.id" class="news-item animate" @tap="() => openNews(news)">
@@ -98,7 +107,11 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
+import { speak, vibrateShort } from '../../services/voice.js'
+
+const helperHint = ref('')
+let hintTimer = null
 
 const recommendations = ref([
   {
@@ -137,179 +150,271 @@ const newsList = ref([
   { id: 'n4', title: '商城上新：适老化智能手表限时优惠', time: '2天前' }
 ])
 
+function setHelperHint(message, duration = 2800) {
+  helperHint.value = message
+  if (hintTimer) {
+    clearTimeout(hintTimer)
+  }
+  hintTimer = setTimeout(() => {
+    helperHint.value = ''
+  }, duration)
+}
+
+function readHeroSummary(auto = false) {
+  const message = `今日为您准备了${recommendations.value.length}条精选内容和${newsList.value.length}条最新动态，向下滑动即可查看更多。`
+  setHelperHint(message)
+  speak(message)
+  if (!auto) {
+    vibrateShort({ style: 'light' })
+  }
+}
+
+function handleNavigation(label, url) {
+  const message = `即将前往${label}`
+  setHelperHint(message)
+  speak(message)
+  vibrateShort({ style: 'light' })
+  uni.switchTab({ url })
+}
+
 function goToCourse() {
-  uni.switchTab({ url: '/pages/course/index' })
+  handleNavigation('课程学习页面', '/pages/course/index')
 }
 
 function goToShop() {
-  uni.switchTab({ url: '/pages/shop/index' })
+  handleNavigation('商城页面', '/pages/shop/index')
 }
 
 function goToCommunity() {
-  uni.switchTab({ url: '/pages/community/index' })
+  handleNavigation('社区交流页面', '/pages/community/index')
 }
 
 function goToProfile() {
-  uni.switchTab({ url: '/pages/profile/index' })
+  handleNavigation('个人中心', '/pages/profile/index')
 }
 
 function openRecommend(item) {
+  const message = `查看推荐 ${item.title}`
+  setHelperHint(message)
+  speak(message)
+  vibrateShort({ style: 'light' })
   uni.showToast({ title: `查看推荐：${item.title}`, icon: 'none' })
 }
 
 function openNews(news) {
+  const message = `查看最新动态 ${news.title}`
+  setHelperHint(message)
+  speak(message)
+  vibrateShort({ style: 'light' })
   uni.showToast({ title: `查看动态：${news.title}`, icon: 'none' })
 }
+
+function openMore(section) {
+  const sectionName = section === 'news' ? '最新动态' : '今日推荐'
+  const message = `即将打开${sectionName}更多内容`
+  setHelperHint(message)
+  speak(message)
+  vibrateShort({ style: 'light' })
+  uni.showToast({ title: `${sectionName}加载中`, icon: 'none' })
+}
+
+onMounted(() => {
+  readHeroSummary(true)
+})
+
+onUnmounted(() => {
+  if (hintTimer) {
+    clearTimeout(hintTimer)
+  }
+})
 </script>
 
 <style scoped>
-.page {
-  background: #f8f9fa;
+ .page {
+  background: linear-gradient(180deg, #f7f9fc 0%, #edf1f7 100%);
   min-height: 100vh;
-  color: #1d2129;
+  color: #1c2333;
   font-size: 36rpx;
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
 /* 状态栏 */
 .status-bar {
-  height: 88rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  height: 96rpx;
+  background: linear-gradient(135deg, #5b71ff 0%, #7a6bff 100%);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 36rpx;
+  padding: 0 48rpx;
   font-weight: 600;
+  font-size: 34rpx;
 }
 
 /* 英雄区 */
 .hero {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #5b71ff 0%, #8f6bff 100%);
   color: #fff;
-  padding: 48rpx 36rpx;
+  padding: 56rpx 40rpx 60rpx;
+  border-bottom-left-radius: 40rpx;
+  border-bottom-right-radius: 40rpx;
+  box-shadow: 0 18rpx 40rpx rgba(91, 113, 255, .35);
 }
 .hero-content {
   text-align: center;
 }
 .hero-title {
-  font-size: 56rpx;
+  font-size: 64rpx;
   font-weight: 700;
-  margin-bottom: 16rpx;
+  margin-bottom: 20rpx;
 }
 .hero-sub {
-  opacity: .9;
-  font-size: 32rpx;
-  margin-bottom: 48rpx;
+  opacity: .95;
+  font-size: 36rpx;
+  margin-bottom: 52rpx;
   display: block;
 }
 .hero-stats {
   display: flex;
-  justify-content: space-around;
+  justify-content: space-between;
   gap: 32rpx;
 }
+.hero-assist {
+  margin-top: 40rpx;
+  display: flex;
+  justify-content: center;
+}
+.assist-pill {
+  padding: 18rpx 32rpx;
+  border-radius: 999rpx;
+  background: rgba(255,255,255,.2);
+  color: #fff;
+  font-size: 30rpx;
+  border: 2rpx solid rgba(255,255,255,.4);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  transition: transform .2s;
+}
+.assist-pill:active {
+  transform: scale(.98);
+}
+.assist-hint {
+  margin: 20rpx 34rpx 0;
+  padding: 18rpx 28rpx;
+  background: #fff;
+  border-radius: 28rpx;
+  color: #4c5bd4;
+  font-size: 30rpx;
+  box-shadow: 0 10rpx 28rpx rgba(92, 109, 143, .08);
+}
 .stat-item {
+  flex: 1;
+  background: rgba(255,255,255,.15);
+  border-radius: 28rpx;
+  padding: 24rpx 16rpx;
   text-align: center;
 }
 .stat-num {
   display: block;
-  font-size: 40rpx;
+  font-size: 48rpx;
   font-weight: 700;
-  margin-bottom: 8rpx;
+  margin-bottom: 10rpx;
 }
 .stat-label {
-  font-size: 26rpx;
-  opacity: .8;
+  font-size: 30rpx;
+  opacity: .95;
 }
 
 /* 区块 */
 .section {
-  padding: 32rpx 28rpx;
+  padding: 40rpx 34rpx;
 }
 .sec-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24rpx;
+  margin-bottom: 28rpx;
 }
 .sec-title {
-  font-size: 36rpx;
+  font-size: 44rpx;
   font-weight: 700;
 }
 .more {
-  color: #667eea;
-  font-size: 28rpx;
+  color: #5b71ff;
+  font-size: 32rpx;
 }
 
 /* 快捷入口 */
 .quick-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 24rpx;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28rpx;
 }
 .quick-item {
   background: #fff;
-  border-radius: 24rpx;
-  padding: 32rpx 16rpx;
+  border-radius: 28rpx;
+  padding: 36rpx 24rpx;
   text-align: center;
-  box-shadow: 0 4rpx 20rpx rgba(0,0,0,.06);
+  box-shadow: 0 12rpx 32rpx rgba(92, 109, 143, .08);
   transition: transform .2s;
 }
 .quick-item:active {
-  transform: scale(.95);
+  transform: scale(.97);
 }
 .quick-icon {
-  width: 80rpx;
-  height: 80rpx;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  width: 108rpx;
+  height: 108rpx;
+  background: linear-gradient(135deg, #5b71ff, #8f6bff);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 40rpx;
-  margin: 0 auto 16rpx;
+  font-size: 48rpx;
+  margin: 0 auto 18rpx;
 }
 .quick-text {
-  font-size: 28rpx;
-  color: #5c6670;
+  font-size: 34rpx;
+  color: #5c6673;
 }
 
 /* 推荐列表 */
 .recommend-list {
   display: flex;
   flex-direction: column;
-  gap: 20rpx;
+  gap: 24rpx;
 }
 .recommend-card {
   display: flex;
-  gap: 20rpx;
+  gap: 24rpx;
   background: #fff;
-  border-radius: 24rpx;
-  padding: 20rpx;
-  box-shadow: 0 4rpx 20rpx rgba(0,0,0,.06);
+  border-radius: 30rpx;
+  padding: 28rpx;
+  box-shadow: 0 12rpx 32rpx rgba(92, 109, 143, .08);
 }
 .recommend-thumb {
-  width: 120rpx;
-  height: 120rpx;
-  border-radius: 20rpx;
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 28rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 48rpx;
+  font-size: 56rpx;
   flex-shrink: 0;
 }
 .recommend-body {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
 }
 .recommend-title {
-  font-size: 32rpx;
+  font-size: 38rpx;
   font-weight: 600;
-  margin-bottom: 8rpx;
 }
 .recommend-desc {
-  font-size: 28rpx;
-  color: #7b8794;
-  margin-bottom: 12rpx;
+  font-size: 32rpx;
+  color: #5c6673;
+  line-height: 1.6;
 }
 .recommend-meta {
   display: flex;
@@ -317,15 +422,15 @@ function openNews(news) {
   align-items: center;
 }
 .recommend-type {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #5b71ff, #8f6bff);
   color: #fff;
-  padding: 4rpx 12rpx;
-  border-radius: 12rpx;
-  font-size: 24rpx;
+  padding: 8rpx 20rpx;
+  border-radius: 18rpx;
+  font-size: 30rpx;
 }
 .recommend-hot {
   color: #ff6b6b;
-  font-size: 24rpx;
+  font-size: 30rpx;
   font-weight: 600;
 }
 
@@ -333,21 +438,21 @@ function openNews(news) {
 .news-list {
   display: flex;
   flex-direction: column;
-  gap: 24rpx;
+  gap: 28rpx;
 }
 .news-item {
   display: flex;
   align-items: center;
-  gap: 20rpx;
+  gap: 24rpx;
   background: #fff;
-  border-radius: 16rpx;
-  padding: 24rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0,0,0,.04);
+  border-radius: 22rpx;
+  padding: 28rpx;
+  box-shadow: 0 10rpx 28rpx rgba(92, 109, 143, .08);
 }
 .news-dot {
-  width: 16rpx;
-  height: 16rpx;
-  background: #667eea;
+  width: 20rpx;
+  height: 20rpx;
+  background: #5b71ff;
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -355,13 +460,13 @@ function openNews(news) {
   flex: 1;
 }
 .news-title {
-  font-size: 30rpx;
-  margin-bottom: 8rpx;
-  line-height: 1.5;
+  font-size: 36rpx;
+  margin-bottom: 10rpx;
+  line-height: 1.6;
 }
 .news-time {
-  color: #7b8794;
-  font-size: 24rpx;
+  color: #5c6673;
+  font-size: 30rpx;
 }
 
 /* 动效 */

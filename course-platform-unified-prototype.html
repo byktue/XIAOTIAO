@@ -49,6 +49,11 @@
       border-radius: 36px;
       padding: 10px;
       box-shadow: var(--shadow-md);
+      input, textarea, button, select {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+      }
     }
     .screen {
       background: var(--card);
@@ -87,6 +92,7 @@
       background: rgba(255,255,255,.2);
       border-radius: 999px;
       padding: 10px 14px;
+      -webkit-backdrop-filter: blur(8px);
       backdrop-filter: blur(8px);
     }
     .search-bar input {
@@ -203,7 +209,7 @@
             <div class="hero-sub">精选课程 + 适老化交互，让学习更轻松</div>
             <div class="search-bar">
               <span>🔍</span>
-              <input placeholder="搜索课程、讲师或关键词" />
+              <input placeholder="搜索课程、讲师或关键词" title="搜索课程、讲师或关键词" />
             </div>
           </div>
 
