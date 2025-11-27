@@ -1,0 +1,10 @@
+# Root-level ignores
+node_modules/
+
+# Ignore nested package outputs as well
+uni-preset-vue-vite/node_modules/
+uni-preset-vue-vite/dist/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
