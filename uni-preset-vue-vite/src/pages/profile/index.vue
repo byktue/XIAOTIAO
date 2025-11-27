@@ -142,7 +142,7 @@
 </template>
 
 <script setup>
-import { computed, onUnmounted, ref } from 'vue'
+import { computed, onUnmounted, ref, onMounted } from 'vue'
 import {
   getHapticPreference,
   getVoicePreference,
@@ -238,6 +238,25 @@ const hapticEnabled = ref(getHapticPreference())
 const accessibilityHint = ref('')
 let accessibilityTimer = null
 
+// 用户偏好设置（持久化到 storage）
+const fontSizePref = ref(uni.getStorageSync('pref_fontSize') || 'large') // small | normal | large
+const darkModePref = ref(uni.getStorageSync('pref_darkMode') === 'true' || false)
+const notificationsPref = ref(uni.getStorageSync('pref_notifications') === 'true' || true)
+
+onMounted(() => {
+  // 在 H5 环境下应用暗色主题类
+  try {
+    if (typeof window !== 'undefined' && darkModePref.value) {
+      document.documentElement.classList.add('x-dark-mode')
+    }
+    // 应用字体大小到根元素（H5），通过 class 控制
+    if (typeof window !== 'undefined') {
+      document.documentElement.classList.remove('fs-small', 'fs-normal', 'fs-large')
+      document.documentElement.classList.add(fontSizePref.value === 'large' ? 'fs-large' : fontSizePref.value === 'normal' ? 'fs-normal' : 'fs-small')
+    }
+  } catch (e) {}
+})
+
 const stopVoiceListener = onVoicePreferenceChange((enabled) => {
   voiceEnabled.value = enabled
 })
@@ -261,19 +280,19 @@ const settingList = computed(() => [
     id: 'font-size',
     title: '字体大小',
     icon: '🔤',
-    value: '大'
+    value: fontSizePref.value === 'large' ? '大' : fontSizePref.value === 'normal' ? '中' : '小'
   },
   {
     id: 'dark-mode',
     title: '夜间模式',
     icon: '🌙',
-    value: '关闭'
+    value: darkModePref.value ? '开启' : '关闭'
   },
   {
     id: 'notifications',
     title: '消息通知',
     icon: '🔔',
-    value: '开启'
+    value: notificationsPref.value ? '开启' : '关闭'
   },
   {
     id: 'privacy',
@@ -309,6 +328,54 @@ function openMenu(menu) {
 }
 
 function openSetting(setting) {
+  // 处理不同设置项的交互
+  if (setting.id === 'font-size') {
+    uni.showActionSheet({
+      itemList: ['大', '中', '小'],
+      success: (res) => {
+        const idx = res.tapIndex
+        const map = ['large', 'normal', 'small']
+        fontSizePref.value = map[idx]
+        try { uni.setStorageSync('pref_fontSize', fontSizePref.value) } catch (e) {}
+        // 应用到 H5 根元素
+        try {
+          document.documentElement.classList.remove('fs-small','fs-normal','fs-large')
+          document.documentElement.classList.add(fontSizePref.value === 'large' ? 'fs-large' : fontSizePref.value === 'normal' ? 'fs-normal' : 'fs-small')
+        } catch (e) {}
+        uni.showToast({ title: `已设置字体：${setting.value}`, icon: 'none' })
+      }
+    })
+    return
+  }
+
+  if (setting.id === 'dark-mode') {
+    darkModePref.value = !darkModePref.value
+    try { uni.setStorageSync('pref_darkMode', darkModePref.value ? 'true' : 'false') } catch (e) {}
+    try {
+      if (darkModePref.value) document.documentElement.classList.add('x-dark-mode')
+      else document.documentElement.classList.remove('x-dark-mode')
+    } catch (e) {}
+    uni.showToast({ title: darkModePref.value ? '已开启夜间模式' : '已关闭夜间模式', icon: 'none' })
+    return
+  }
+
+  if (setting.id === 'notifications') {
+    notificationsPref.value = !notificationsPref.value
+    try { uni.setStorageSync('pref_notifications', notificationsPref.value ? 'true' : 'false') } catch (e) {}
+    uni.showToast({ title: notificationsPref.value ? '消息通知已开启' : '消息通知已关闭', icon: 'none' })
+    return
+  }
+
+  if (setting.id === 'privacy') {
+    uni.navigateTo({ url: '/pages/profile/privacy' })
+    return
+  }
+
+  if (setting.id === 'about') {
+    uni.navigateTo({ url: '/pages/profile/about' })
+    return
+  }
+
   uni.showToast({ title: `设置：${setting.title}`, icon: 'none' })
 }
 

@@ -116,6 +116,15 @@
 		}
 		,
 		{
+			"path": "pages/profile/privacy",
+			"style": { "navigationBarTitleText": "隐私设置", "navigationStyle": "default" }
+		},
+		{
+			"path": "pages/profile/about",
+			"style": { "navigationBarTitleText": "关于我们", "navigationStyle": "default" }
+		}
+		,
+		{
 			"path": "pages/course/all",
 			"style": { "navigationBarTitleText": "全部课程", "navigationStyle": "default" }
 		},
