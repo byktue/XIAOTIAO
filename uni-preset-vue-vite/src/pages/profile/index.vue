@@ -278,23 +278,24 @@ onUnmounted(() => {
 
 <style scoped>
 .page {
-  background: #f8f9fa;
+  background: linear-gradient(180deg, #f7f9fc 0%, #f0f2f7 100%);
   min-height: 100vh;
-  color: #1d2129;
+  color: #1c2333;
   font-size: 36rpx;
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
 /* 状态栏 */
 .status-bar {
-  height: 88rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  height: 96rpx;
+  background: linear-gradient(135deg, #5b71ff 0%, #7a6bff 100%);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 36rpx;
+  padding: 0 48rpx;
   font-weight: 600;
+  font-size: 34rpx;
 }
 
 /* 用户信息区 */
@@ -367,7 +368,7 @@ onUnmounted(() => {
 
 /* 区块 */
 .section {
-  padding: 32rpx 28rpx;
+  padding: 36rpx 32rpx;
 }
 .sec-head {
   display: flex;
@@ -412,7 +413,7 @@ onUnmounted(() => {
   flex: 1;
 }
 .progress-title {
-  font-size: 32rpx;
+  font-size: 36rpx;
   font-weight: 600;
   margin-bottom: 16rpx;
 }
@@ -444,11 +445,11 @@ onUnmounted(() => {
 .menu-item {
   display: flex;
   align-items: center;
-  gap: 20rpx;
+  gap: 24rpx;
   background: #fff;
-  border-radius: 20rpx;
-  padding: 24rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0,0,0,.04);
+  border-radius: 24rpx;
+  padding: 32rpx;
+  box-shadow: 0 10rpx 30rpx rgba(92, 109, 143, .1);
 }
 .menu-icon {
   width: 80rpx;
@@ -457,41 +458,43 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32rpx;
+  font-size: 40rpx;
   flex-shrink: 0;
 }
 .menu-content {
   flex: 1;
   display: flex;
   flex-direction: column;
+  gap: 6rpx;
 }
 .menu-title {
-  font-size: 32rpx;
+  font-size: 38rpx;
   font-weight: 600;
   margin-bottom: 4rpx;
 }
 .menu-desc {
-  font-size: 26rpx;
-  color: #7b8794;
+  font-size: 30rpx;
+  color: #5c6673;
+  line-height: 1.5;
 }
 .menu-arrow {
-  color: #c4c6cc;
-  font-size: 32rpx;
+  color: #9aa3b1;
+  font-size: 40rpx;
   font-weight: 300;
 }
 
 /* 设置列表 */
 .setting-list {
   background: #fff;
-  border-radius: 24rpx;
+  border-radius: 28rpx;
   overflow: hidden;
-  box-shadow: 0 2rpx 12rpx rgba(0,0,0,.04);
+  box-shadow: 0 12rpx 28rpx rgba(92, 109, 143, .08);
 }
 .setting-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 32rpx 24rpx;
+  padding: 36rpx 32rpx;
   border-bottom: 2rpx solid #f0f1f3;
 }
 .setting-item:last-child {
@@ -506,7 +509,7 @@ onUnmounted(() => {
   font-size: 32rpx;
 }
 .setting-title {
-  font-size: 32rpx;
+  font-size: 36rpx;
 }
 .setting-right {
   display: flex;
@@ -514,8 +517,8 @@ onUnmounted(() => {
   gap: 16rpx;
 }
 .setting-value {
-  color: #7b8794;
-  font-size: 28rpx;
+  color: #5c6673;
+  font-size: 32rpx;
 }
 .setting-arrow {
   color: #c4c6cc;

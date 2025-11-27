@@ -677,50 +677,54 @@ function submitPost() {
 
 <style scoped>
 .page {
-  background: #f8f9fa;
+  background: linear-gradient(180deg, #f7f9fc 0%, #edf1f7 100%);
   min-height: 100vh;
-  color: #1d2129;
+  color: #1c2333;
   font-size: 36rpx;
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
 /* 状态栏（原有） */
 .status-bar {
-  height: 88rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  height: 96rpx;
+  background: linear-gradient(135deg, #5b71ff 0%, #7a6bff 100%);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 36rpx;
+  padding: 0 48rpx;
   font-weight: 600;
+  font-size: 34rpx;
 }
 
 /* 英雄区（原有） */
 .hero {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #5b71ff 0%, #8f6bff 100%);
   color: #fff;
-  padding: 36rpx;
+  padding: 48rpx 40rpx 56rpx;
+  border-bottom-left-radius: 36rpx;
+  border-bottom-right-radius: 36rpx;
+  box-shadow: 0 18rpx 40rpx rgba(91, 113, 255, .35);
 }
 .hero-title {
-  font-size: 48rpx;
+  font-size: 56rpx;
   font-weight: 700;
-  margin-bottom: 12rpx;
+  margin-bottom: 16rpx;
 }
 .hero-sub {
-  opacity: .9;
-  font-size: 30rpx;
-  margin-bottom: 24rpx;
+  opacity: .95;
+  font-size: 34rpx;
+  margin-bottom: 32rpx;
   display: block;
 }
 .search-bar {
   display: flex;
   align-items: center;
   gap: 20rpx;
-  background: rgba(255,255,255,.2);
+  background: rgba(255,255,255,.25);
   border-radius: 999rpx;
-  padding: 20rpx 28rpx;
-  backdrop-filter: blur(8px);
+  padding: 28rpx 36rpx;
+  backdrop-filter: blur(10px);
 }
 .search-bar input {
   border: none;
@@ -728,7 +732,7 @@ function submitPost() {
   flex: 1;
   background: transparent;
   color: #fff;
-  font-size: 32rpx;
+  font-size: 34rpx;
 }
 
 /* 分类导航（原有） */
@@ -739,8 +743,8 @@ function submitPost() {
 }
 .cate-row {
   display: flex;
-  gap: 20rpx;
-  padding: 28rpx 24rpx;
+  gap: 28rpx;
+  padding: 32rpx 32rpx;
 }
 .cate {
   flex: 0 0 auto;
@@ -750,8 +754,8 @@ function submitPost() {
   color: #5c6670;
   border: 2rpx solid #e9ecef;
   border-radius: 999rpx;
-  padding: 20rpx 28rpx;
-  font-size: 30rpx;
+  padding: 24rpx 36rpx;
+  font-size: 32rpx;
   cursor: pointer;
   user-select: none;
   transition: .2s all;
@@ -765,7 +769,7 @@ function submitPost() {
 
 /* 区块与卡片（原有） */
 .section {
-  padding: 32rpx 28rpx;
+  padding: 38rpx 34rpx;
 }
 .sec-head {
   display: flex;
@@ -774,12 +778,12 @@ function submitPost() {
   margin-bottom: 24rpx;
 }
 .sec-title {
-  font-size: 36rpx;
+  font-size: 42rpx;
   font-weight: 700;
 }
 .more {
-  color: #667eea;
-  font-size: 28rpx;
+  color: #5b71ff;
+  font-size: 32rpx;
   text-decoration: none;
 }
 
@@ -792,9 +796,9 @@ function submitPost() {
 .topic-card {
   background: #fff;
   border: 2rpx solid #f0f1f3;
-  border-radius: 24rpx;
-  padding: 24rpx;
-  box-shadow: 0 4rpx 20rpx rgba(0,0,0,.06);
+  border-radius: 28rpx;
+  padding: 32rpx;
+  box-shadow: 0 10rpx 30rpx rgba(92, 109, 143, .09);
 }
 .topic-header {
   display: flex;
@@ -803,19 +807,19 @@ function submitPost() {
   margin-bottom: 12rpx;
 }
 .topic-tag {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #5b71ff, #8f6bff);
   color: #fff;
   padding: 6rpx 16rpx;
   border-radius: 16rpx;
-  font-size: 24rpx;
+  font-size: 28rpx;
   font-weight: 600;
 }
 .topic-time {
-  color: #7b8794;
-  font-size: 26rpx;
+  color: #5c6673;
+  font-size: 30rpx;
 }
 .topic-title {
-  font-size: 32rpx;
+  font-size: 38rpx;
   font-weight: 600;
   margin-bottom: 16rpx;
   line-height: 1.5;
@@ -823,8 +827,8 @@ function submitPost() {
 .topic-stats {
   display: flex;
   gap: 24rpx;
-  color: #7b8794;
-  font-size: 26rpx;
+  color: #5c6673;
+  font-size: 30rpx;
 }
 
 /* 帖子卡片（原有） */
@@ -836,9 +840,9 @@ function submitPost() {
 .post-card {
   background: #fff;
   border: 2rpx solid #f0f1f3;
-  border-radius: 24rpx;
-  padding: 24rpx;
-  box-shadow: 0 4rpx 20rpx rgba(0,0,0,.06);
+  border-radius: 32rpx;
+  padding: 32rpx;
+  box-shadow: 0 12rpx 32rpx rgba(92, 109, 143, .08);
 }
 .post-header {
   display: flex;
@@ -852,69 +856,69 @@ function submitPost() {
   gap: 16rpx;
 }
 .avatar {
-  width: 80rpx;
-  height: 80rpx;
+  width: 96rpx;
+  height: 96rpx;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #5b71ff, #8f6bff);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32rpx;
+  font-size: 40rpx;
 }
 .user-detail {
   display: flex;
   flex-direction: column;
 }
 .username {
-  font-size: 30rpx;
+  font-size: 36rpx;
   font-weight: 600;
   margin-bottom: 4rpx;
 }
 .user-time {
-  color: #7b8794;
-  font-size: 24rpx;
+  color: #5c6673;
+  font-size: 30rpx;
 }
 .follow-btn {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #5b71ff, #8f6bff);
   color: #fff;
-  padding: 12rpx 24rpx;
+  padding: 18rpx 36rpx;
   border-radius: 999rpx;
-  font-size: 26rpx;
+  font-size: 32rpx;
   font-weight: 600;
 }
 .post-content {
-  font-size: 32rpx;
-  line-height: 1.6;
-  margin-bottom: 16rpx;
+  font-size: 36rpx;
+  line-height: 1.7;
+  margin-bottom: 20rpx;
 }
 .post-images {
   display: flex;
-  gap: 12rpx;
-  margin-bottom: 16rpx;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
 }
 .post-img {
-  width: 120rpx;
-  height: 120rpx;
+  width: 140rpx;
+  height: 140rpx;
   border-radius: 16rpx;
   background: linear-gradient(45deg, #f0f2f5, #e9ecef);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 48rpx;
+  font-size: 56rpx;
 }
 .post-actions {
   display: flex;
-  gap: 32rpx;
-  padding-top: 16rpx;
+  gap: 36rpx;
+  padding-top: 20rpx;
   border-top: 2rpx solid #f0f1f3;
 }
 .action-btn {
   display: flex;
   align-items: center;
   gap: 8rpx;
-  color: #7b8794;
-  font-size: 28rpx;
-  padding: 8rpx 16rpx;
+  color: #5c6673;
+  font-size: 32rpx;
+  padding: 12rpx 18rpx;
   border-radius: 16rpx;
   transition: .2s all;
 }

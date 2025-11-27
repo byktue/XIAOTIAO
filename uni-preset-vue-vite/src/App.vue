@@ -16,5 +16,26 @@ export default {
 </script>
 
 <style>
-/*每个页面公共css */
+page {
+  font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+  font-size: 34rpx;
+  line-height: 1.65;
+  letter-spacing: 0.5rpx;
+  background-color: #f5f7fa;
+  color: #1f2d3d;
+}
+
+text, view {
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.accessibility-highlight {
+  color: #1f2d3d;
+  font-weight: 600;
+}
+
+.accessibility-subtle {
+  color: #5c6673;
+}
 </style>
